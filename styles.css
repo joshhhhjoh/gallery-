@@ -1,4 +1,4 @@
-/* Dual-save build — minimal style from v3.3 with a save badge */
+/* v3.4 Hard Save — simple, bold UI */
 :root{ --bg:#0b0b0b; --panel:#111; --ink:#fff; --ink-dim:#bfbfbf; --line:#1f1f1f; }
 *{box-sizing:border-box} html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;padding-bottom:env(safe-area-inset-bottom)}
@@ -11,6 +11,7 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
 .btn:hover{background:#1a1a1a;transform:translateY(-1px);transition:transform .18s,background .18s}
 .btn.ghost{background:transparent}
 .btn.danger{border-color:#3a1e1e;color:#ffbdbd}
+.btn.primary{border-color:#2b3bff;color:#cfd4ff}
 .btn.sm{padding:8px 10px;border-radius:10px;font-size:14px}
 .btn.xl{padding:14px 16px;font-size:16px}
 .file-btn{position:relative;overflow:hidden}
@@ -32,7 +33,7 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
 .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
 
 .meta{padding:12px;display:grid;gap:10px}
-.title,.desc,.tags{width:100%;background:#0e0e0e;color:var(--ink);border:1px solid var(--line);padding:10px 12px;border-radius:12px;font-size:16px}
+.title,.desc,.tags{width:100%;background:#0e0e0e;color:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;font-size:16px}
 .desc{resize:vertical;min-height:44px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 

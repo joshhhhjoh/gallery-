@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>J//Gallery</title>
+  <title>J Gallery</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,11 +21,11 @@
         Take Photo
         <input id="uploadCamera" type="file" accept="image/*" capture="environment" />
       </div>
-      <button id="saveNow" class="btn">Save</button>
+      <button id="saveNow" class="btn primary">Save</button>
       <button id="exportJson" class="btn">Export</button>
       <label class="btn" for="importJson">Import</label>
       <button id="newGallery" class="btn danger">New</button>
-      <span id="saveStatus" class="badge">Saving: …</span>
+      <span id="saveStatus" class="badge">Not saved</span>
     </nav>
   </header>
 
@@ -44,7 +44,7 @@
   </main>
 
   <footer class="shell foot">
-    <span class="muted">Dual-save build — IndexedDB with automatic localStorage backup. Works offline.</span>
+    <span class="muted">Hard Save: localStorage + automatic backup on Save. Offline by default.</span>
   </footer>
 
   <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
