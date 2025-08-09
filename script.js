@@ -1,279 +1,302 @@
-/* J//Gallery v2 — iPhone-friendly uploads + modern UI */
+/* J//Gallery v3 — IndexedDB for large galleries */
 (() => {
-  const KEY = "joshGalleryData";
+  // --- IndexedDB helpers ---
+  const DB_NAME = 'josh_gallery_v3';
+  const DB_VERSION = 1;
+  const STORE_ITEMS = 'items';
+  const STORE_META = 'meta';
+  let db;
+
+  function openDB(){
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE_ITEMS)){
+          const s = db.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
+          s.createIndex('order', 'order', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STORE_META)){
+          db.createObjectStore(STORE_META, { keyPath: 'key' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function tx(storeName, mode, fn){
+    if (!db) db = await openDB();
+    return new Promise((resolve, reject) => {
+      const t = db.transaction(storeName, mode);
+      const store = t.objectStore(storeName);
+      const res = fn(store);
+      t.oncomplete = () => resolve(res);
+      t.onerror = () => reject(t.error);
+      t.onabort = () => reject(t.error);
+    });
+  }
+  const putItem = (item) => tx(STORE_ITEMS, 'readwrite', s => s.put(item));
+  const deleteItem = (id) => tx(STORE_ITEMS, 'readwrite', s => s.delete(id));
+  const clearItems = () => tx(STORE_ITEMS, 'readwrite', s => s.clear());
+  const listItems = () => tx(STORE_ITEMS, 'readonly', s => {
+    return new Promise((resolve, reject) => {
+      const arr = [];
+      const idx = s.index('order');
+      const req = idx.openCursor();
+      req.onsuccess = e => {
+        const cur = e.target.result;
+        if (cur){ arr.push(cur.value); cur.continue(); }
+        else resolve(arr);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  });
+  const setMeta = (key, value) => tx(STORE_META, 'readwrite', s => s.put({ key, value }));
+  const getMeta = (key) => tx(STORE_META, 'readonly', s => new Promise((res, rej) => {
+    const r = s.get(key); r.onsuccess = () => res(r.result?.value); r.onerror = () => rej(r.error);
+  }));
+
+  // --- UI refs ---
   const grid = document.getElementById('grid');
   const tmpl = document.getElementById('cardTemplate');
-  const uploadInput = document.getElementById('uploadInput');
+  const uploadPhotos = document.getElementById('uploadPhotos');
+  const uploadCamera = document.getElementById('uploadCamera');
   const importJson = document.getElementById('importJson');
   const count = document.getElementById('count');
   const search = document.getElementById('search');
   const exportBtn = document.getElementById('exportJson');
-  const saveBtn = document.getElementById('saveLocal');
   const newBtn = document.getElementById('newGallery');
   const addUrl = document.getElementById('addUrl');
-  const dockUrl = document.getElementById('dockUrl');
-  const dockExport = document.getElementById('dockExport');
   const galleryTitle = document.getElementById('galleryTitle');
+  const saveTitle = document.getElementById('saveTitle');
 
-  const lightbox = document.getElementById('lightbox');
-  const lightboxImg = document.getElementById('lightboxImg');
-  const lightboxClose = document.getElementById('lightboxClose');
-  const lbTitle = document.getElementById('lightboxTitle');
-  const lbDesc = document.getElementById('lightboxDesc');
-
-  let data = loadLocal() || sampleData();
-  galleryTitle.value = data.title || "Gallery";
-  render();
-
-  // iPhone-friendly: visible <label for="uploadInput"> triggers native sheet (Photos/Camera/Browse)
-  uploadInput.addEventListener('change', async e => {
-    const files = [...(e.target.files || [])];
-    for (const file of files) {
-      const src = await fileToDataURL(file);
-      pushItem({ src, title: file.name.replace(/\.[^.]+$/, ''), desc: '', tags: [] });
+  // --- Init ---
+  let items = [];
+  init();
+  async function init(){
+    db = await openDB();
+    const title = await getMeta('title');
+    galleryTitle.value = title || 'J//Gallery v3';
+    items = await listItems();
+    if (!items.length){
+      // Seed demo items (external URLs only, not blobs) just to show layout
+      await addFromURL("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=60","City Night","Demo image. Replace me.",["city","night"]);
+      await addFromURL("https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1200&q=60","Portrait","Demo image. Replace me.",["portrait"]);
+      items = await listItems();
     }
-    uploadInput.value = "";
-  });
+    render();
+  }
 
-  document.getElementById('importJson').addEventListener('change', async e => {
+  // --- Bindings ---
+  bindPicker(uploadPhotos, false);
+  bindPicker(uploadCamera, false); // camera capture is in HTML
+
+  importJson.addEventListener('change', async e => {
     try{
       const file = e.target.files?.[0];
       if (!file) return;
       const text = await file.text();
       const obj = JSON.parse(text);
-      validate(obj);
-      data = obj;
-      galleryTitle.value = data.title || "Gallery";
-      render(); autosave();
+      if (!Array.isArray(obj.items)) throw new Error('Invalid JSON: expected { items: [] }');
+      // Clear and import
+      await clearItems();
+      let order = 0;
+      for (const it of obj.items){
+        const id = it.id || crypto.randomUUID();
+        const title = it.title || '';
+        const desc = it.desc || '';
+        const tags = Array.isArray(it.tags) ? it.tags : [];
+        let blob;
+        if (it.src && it.src.startsWith('data:')){
+          blob = dataURLToBlob(it.src);
+        } else if (it.src){
+          // fetch remote to blob (best effort)
+          try{ blob = await fetch(it.src).then(r => r.blob()); } catch{ blob = new Blob() }
+        } else {
+          blob = new Blob();
+        }
+        await putItem({ id, order: order++, title, desc, tags, blobType: blob.type, blob });
+      }
+      items = await listItems();
+      render();
+      toast('Imported');
       e.target.value = "";
-      toast("Imported JSON");
     }catch(err){
       alert('Import failed: ' + err.message);
     }
   });
 
-  exportBtn.addEventListener('click', () => doExport());
-  dockExport.addEventListener('click', () => doExport());
-
-  saveBtn.addEventListener('click', () => {
-    saveLocal();
-    toast("Saved locally");
+  exportBtn.addEventListener('click', async () => {
+    // Build JSON with data URLs so it’s portable
+    const out = { title: galleryTitle.value, items: [] };
+    for (const it of items){
+      const dataURL = await blobToDataURL(it.blob);
+      out.items.push({ id: it.id, title: it.title, desc: it.desc, tags: it.tags, src: dataURL });
+    }
+    const text = JSON.stringify(out, null, 2);
+    const a = document.createElement('a');
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
+    a.download = (out.title || 'gallery') + '.json';
+    a.click();
   });
 
-  newBtn.addEventListener('click', () => {
+  newBtn.addEventListener('click', async () => {
     if(!confirm("Start a new, empty gallery? You can re-import JSON later.")) return;
-    data = { title: "New Gallery", items: [] };
-    galleryTitle.value = data.title;
-    render(); autosave();
+    await clearItems();
+    items = await listItems();
+    render();
   });
 
-  function askUrl(){
+  addUrl.addEventListener('click', async () => {
     const url = prompt('Paste image URL');
     if (!url) return;
-    pushItem({ src: url.trim(), title: '', desc: '', tags: [] });
-  }
-  addUrl.addEventListener('click', askUrl);
-  dockUrl.addEventListener('click', askUrl);
+    await addFromURL(url.trim(), '', '', []);
+    items = await listItems(); render();
+  });
+
+  saveTitle.addEventListener('click', async () => {
+    await setMeta('title', galleryTitle.value || 'J//Gallery v3');
+    toast('Title saved');
+  });
 
   search.addEventListener('input', render);
-  galleryTitle.addEventListener('input', () => { data.title = galleryTitle.value; autosave(); });
 
-  // Lightbox
-  lightboxClose.addEventListener('click', () => lightbox.hidden = true);
-  lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.hidden = true; });
-
-  function doExport(){
-    const out = JSON.stringify(data, null, 2);
-    const blob = new Blob([out], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (data.title || 'gallery') + '.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
+  function bindPicker(input){
+    if (!input) return;
+    input.addEventListener('change', async e => {
+      const files = [...(e.target.files || [])];
+      let maxOrder = items.reduce((m, it) => Math.max(m, it.order || 0), 0);
+      for (const file of files) {
+        const id = crypto.randomUUID();
+        const blob = file;
+        await putItem({ id, order: ++maxOrder, title: file.name.replace(/\\.[^.]+$/, ''), desc: '', tags: [], blobType: blob.type, blob });
+      }
+      items = await listItems(); render();
+      input.value = "";
+    });
   }
 
-  // --- Rendering ---
-  function render(){
-    grid.innerHTML = '';
-    const q = search.value.trim().toLowerCase();
-    const items = q ? data.items.filter(it => match(it, q)) : data.items;
+  async function addFromURL(url, title='', desc='', tags=[]){
+    let blob;
+    try{
+      blob = await fetch(url, { mode: 'cors' }).then(r => r.blob());
+    }catch{
+      blob = new Blob(); // fallback
+    }
+    const order = (items.reduce((m, it) => Math.max(m, it.order||0), 0) || 0) + 1;
+    await putItem({ id: crypto.randomUUID(), order, title, desc, tags, blobType: blob.type, blob });
+  }
 
-    for (const item of items){
+  // --- Render ---
+  async function render(){
+    const q = search.value.trim().toLowerCase();
+    const filtered = q ? items.filter(it => match(it, q)) : items;
+    grid.innerHTML = '';
+    for (const it of filtered){
       const node = tmpl.content.firstElementChild.cloneNode(true);
       const img = node.querySelector('.thumb');
-      const title = node.querySelector('.title');
-      const desc = node.querySelector('.desc');
-      const tags = node.querySelector('.tags');
-      const remove = node.querySelector('.remove');
-      const replaceBtn = node.querySelector('.replace');
-      const moveBtn = node.querySelector('.move');
+      const t = node.querySelector('.title');
+      const d = node.querySelector('.desc');
+      const g = node.querySelector('.tags');
+      const up = node.querySelector('.up');
+      const down = node.querySelector('.down');
+      const rm = node.querySelector('.remove');
+      const rp = node.querySelector('.replace');
 
-      img.src = item.src;
-      img.alt = item.title || "Image";
-      img.onclick = () => openLightbox(item);
+      img.src = URL.createObjectURL(it.blob);
+      img.onload = () => URL.revokeObjectURL(img.src);
 
-      title.value = item.title || '';
-      desc.value = item.desc || '';
-      tags.value = (item.tags || []).join(', ');
+      t.value = it.title || '';
+      d.value = it.desc || '';
+      g.value = (it.tags || []).join(', ');
 
-      title.oninput = () => { item.title = title.value; autosave(); updateLightboxIfOpen(item); };
-      desc.oninput = () => { item.desc = desc.value; autosave(); updateLightboxIfOpen(item); };
-      tags.oninput = () => { item.tags = splitTags(tags.value); autosave(); };
+      t.oninput = async () => { it.title = t.value; await putItem(it); };
+      d.oninput = async () => { it.desc = d.value; await putItem(it); };
+      g.oninput = async () => { it.tags = splitTags(g.value); await putItem(it); };
 
-      remove.onclick = () => {
+      up.onclick = async () => { await move(it.id, -1); };
+      down.onclick = async () => { await move(it.id, +1); };
+      rm.onclick = async () => {
         if (!confirm('Remove this image?')) return;
-        data.items = data.items.filter(x => x.id !== item.id);
-        render(); autosave();
+        await deleteItem(it.id);
+        items = await listItems(); render();
       };
-
-      replaceBtn.onclick = () => {
-        // Make a temporary file input to guarantee iOS sheet
-        const tmp = document.createElement('input');
-        tmp.type = 'file';
-        tmp.accept = 'image/*,image/heic,image/heif';
-        tmp.capture = 'environment';
-        tmp.onchange = async e => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const src = await fileToDataURL(file);
-          item.src = src; autosave(); render();
+      rp.onclick = () => {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = async e => {
+          const f = e.target.files?.[0]; if (!f) return;
+          it.blob = f; it.blobType = f.type; await putItem(it);
+          items = await listItems(); render();
         };
-        tmp.click();
+        inp.click();
       };
-
-      // Drag sorting
-      node.addEventListener('dragstart', ev => {
-        node.classList.add('dragging');
-        ev.dataTransfer.effectAllowed = 'move';
-        ev.dataTransfer.setData('text/plain', item.id);
-      });
-      node.addEventListener('dragend', () => node.classList.remove('dragging'));
-      moveBtn.addEventListener('touchstart', () => {});
 
       grid.appendChild(node);
     }
-    count.textContent = `${items.length} / ${data.items.length}`;
-
-    // Drop logic
-    grid.ondragover = e => {
-      e.preventDefault();
-      const after = getDragAfterElement(grid, e.clientY);
-      const dragging = grid.querySelector('.card.dragging');
-      if (!dragging) return;
-      if (after == null) grid.appendChild(dragging);
-      else grid.insertBefore(dragging, after);
-    };
-    grid.ondrop = e => {
-      e.preventDefault();
-      const domSrcs = Array.from(grid.querySelectorAll('.card .thumb')).map(i => i.src);
-      data.items.sort((a,b) => domSrcs.indexOf(a.src) - domSrcs.indexOf(b.src));
-      autosave(); render();
-    };
+    count.textContent = `${filtered.length} / ${items.length}`;
   }
 
-  function openLightbox(item){
-    lightboxImg.src = item.src;
-    lbTitle.textContent = item.title || '';
-    lbDesc.textContent = item.desc || '';
-    lightbox.hidden = false;
-  }
-  function updateLightboxIfOpen(item){
-    if (lightbox.hidden) return;
-    // Best-effort update if the visible image matches
-    if (lightboxImg.src && lightboxImg.src === item.src){
-      lbTitle.textContent = item.title || '';
-      lbDesc.textContent = item.desc || '';
-    }
-  }
-
-  function getDragAfterElement(container, y) {
-    const elements = [...container.querySelectorAll('.card:not(.dragging)')];
-    return elements.reduce((closest, child) => {
-      const box = child.getBoundingClientRect();
-      const offset = y - box.top - box.height / 2;
-      if (offset < 0 && offset > closest.offset) {
-        return { offset: offset, element: child };
-      } else {
-        return closest;
-      }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-  }
-
-  // --- Helpers ---
-  function pushItem({src, title, desc, tags}){
-    data.items.push({ id: crypto.randomUUID(), src, title, desc, tags });
-    render(); autosave();
-  }
+  function splitTags(str){ return str.split(',').map(s => s.trim()).filter(Boolean); }
   function match(it, q){
     const hay = [it.title||'', it.desc||'', ...(it.tags||[])].join(' ').toLowerCase();
     return hay.includes(q);
   }
-  function splitTags(str){
-    return str.split(',').map(s => s.trim()).filter(Boolean);
+
+  async function move(id, delta){
+    const idx = items.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const target = Math.max(0, Math.min(items.length - 1, idx + delta));
+    if (target === idx) return;
+    // swap order
+    const a = items[idx], b = items[target];
+    const tmp = a.order; a.order = b.order; b.order = tmp;
+    await putItem(a); await putItem(b);
+    items = await listItems(); render();
   }
-  function fileToDataURL(file){
+
+  function blobToDataURL(blob){
     return new Promise((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(r.result);
       r.onerror = reject;
-      r.readAsDataURL(file);
+      r.readAsDataURL(blob);
     });
   }
-  function validate(obj){
-    if (typeof obj !== 'object' || !obj.items || !Array.isArray(obj.items)) throw new Error('Invalid shape: expected { title, items: [] }');
-    for (const it of obj.items){
-      if (typeof it.src !== 'string') throw new Error('Each item needs a string "src"');
-      if (!it.id) it.id = crypto.randomUUID();
-      it.tags = Array.isArray(it.tags) ? it.tags : [];
-      it.title = it.title || '';
-      it.desc = it.desc || '';
-    }
-    obj.title = obj.title || 'J//Gallery';
+  function dataURLToBlob(dataURL){
+    const [h, b64] = dataURL.split(',');
+    const mime = /data:(.*?);base64/.exec(h)?.[1] || 'application/octet-stream';
+    const bin = atob(b64);
+    const len = bin.length;
+    const arr = new Uint8Array(len);
+    for (let i=0;i<len;i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
   }
-  function saveLocal(){
-    localStorage.setItem(KEY, JSON.stringify(data));
+
+  // crypto.randomUUID polyfill
+  if (!('crypto' in window) || !('randomUUID' in crypto)) {
+    window.crypto = window.crypto || {};
+    crypto.randomUUID = function() {
+      const s = [], hex = '0123456789abcdef';
+      for (let i=0;i<36;i++) s[i] = hex[Math.floor(Math.random()*16)];
+      s[14] = '4';
+      s[19] = hex[(parseInt(s[19],16)&0x3)|0x8];
+      s[8]=s[13]=s[18]=s[23]='-';
+      return s.join('');
+    };
   }
-  function loadLocal(){
-    try{
-      const raw = localStorage.getItem(KEY);
-      return raw ? JSON.parse(raw) : null;
-    }catch{ return null; }
-  }
-  function autosave(){
-    clearTimeout(autosave._t);
-    autosave._t = setTimeout(saveLocal, 250);
-  }
+
+  // Toast
   function toast(msg){
     const el = document.createElement('div');
     el.textContent = msg;
-    el.style.position='fixed'; el.style.bottom='84px'; el.style.right='16px';
-    el.style.padding='10px 12px'; el.style.border='1px solid #2a2a2a';
-    el.style.background='#141414'; el.style.borderRadius='10px'; el.style.color='#fff';
+    el.style.position='fixed'; el.style.bottom='24px'; el.style.right='16px';
+    el.style.padding='12px 14px'; el.style.border='1px solid #2a2a2a';
+    el.style.background='#141414'; el.style.borderRadius='12px'; el.style.color='#fff';
     el.style.opacity='0'; el.style.transition='opacity .2s, transform .2s'; el.style.transform='translateY(6px)';
-    el.style.zIndex='60';
+    el.style.zIndex='5';
     document.body.appendChild(el);
     requestAnimationFrame(()=>{el.style.opacity='1'; el.style.transform='translateY(0)'});
     setTimeout(()=>{el.style.opacity='0'; el.style.transform='translateY(6px)'; setTimeout(()=>el.remove(),200)},1400);
-  }
-  function sampleData(){
-    return {
-      title: "J//Gallery",
-      items: [
-        {
-          id: crypto.randomUUID(),
-          src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=60",
-          title: "City Night",
-          desc: "Demo image. Replace me.",
-          tags: ["city","night"]
-        },
-        {
-          id: crypto.randomUUID(),
-          src: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1200&q=60",
-          title: "Portrait",
-          desc: "Demo image. Replace me.",
-          tags: ["portrait"]
-        }
-      ]
-    };
   }
 })();
