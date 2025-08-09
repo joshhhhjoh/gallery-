@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>J//Gallery v3.3 (Offline)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="shell">
+    <div class="brand">
+      <div class="logo">J//</div>
+      <h1>Gallery v3.3</h1>
+    </div>
+    <nav class="nav">
+      <div class="btn xl file-btn" aria-label="Add from Photos">
+        Add from Photos
+        <input id="uploadPhotos" type="file" accept="image/*" multiple />
+      </div>
+      <div class="btn xl file-btn ghost" aria-label="Take Photo">
+        Take Photo
+        <input id="uploadCamera" type="file" accept="image/*" capture="environment" />
+      </div>
+      <button id="exportJson" class="btn">Export</button>
+      <label class="btn" for="importJson">Import</label>
+      <button id="newGallery" class="btn danger">New</button>
+      <button id="toggleLog" class="btn sm">Show Log</button>
+    </nav>
+  </header>
+
+  <section class="panel shell">
+    <div class="row">
+      <input id="galleryTitle" class="titleInput" placeholder="Gallery title" />
+      <span class="muted" id="count"></span>
+    </div>
+    <div class="filters">
+      <input id="search" class="search" type="search" placeholder="Search title, description, tags…" />
+    </div>
+  </section>
+
+  <main class="shell">
+    <ul id="grid" class="grid" aria-live="polite"></ul>
+  </main>
+
+  <footer class="shell foot">
+    <span class="muted">Offline build — all data in IndexedDB on your device. No network needed.</span>
+  </footer>
+
+  <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
+
+  <template id="cardTemplate">
+    <li class="card">
+      <div class="media">
+        <img class="thumb" alt="Image" />
+      </div>
+      <div class="meta">
+        <input class="title" placeholder="Title" />
+        <textarea class="desc" rows="2" placeholder="Description"></textarea>
+        <input class="tags" placeholder="tags, comma,separated" />
+        <div class="actions">
+          <button class="btn sm up" title="Move up">▲</button>
+          <button class="btn sm down" title="Move down">▼</button>
+          <button class="btn sm replace" title="Replace">Replace</button>
+          <button class="btn sm danger remove" title="Remove">Remove</button>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <div id="log"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
