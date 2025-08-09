@@ -1,10 +1,9 @@
-/* v3.4.1 — JSON-first workflow */
+/* v3.5 — JSON-first + Fullscreen Viewer */
 (() => {
-  const LSK = 'J_GALLERY_V341';
+  const LSK = 'J_GALLERY_V35';
   const saveStatus = document.getElementById('saveStatus');
   const logBox = document.getElementById('log');
   const log = (...a) => { const d=document.createElement('div'); d.textContent=a.map(String).join(' '); logBox.appendChild(d); logBox.scrollTop=logBox.scrollHeight; };
-  window.addEventListener('error', e => log('Error:', e.message||e.error));
 
   const grid = document.getElementById('grid');
   const tmpl = document.getElementById('cardTemplate');
@@ -23,8 +22,20 @@
   const selectAll = document.getElementById('selectAll');
   const clearSel = document.getElementById('clearSel');
 
+  // Viewer refs
+  const viewer = document.getElementById('viewer');
+  const vImg = viewer.querySelector('.v-img');
+  const vPrev = viewer.querySelector('.v-prev');
+  const vNext = viewer.querySelector('.v-next');
+  const vClose = viewer.querySelector('.v-close');
+  const vCount = viewer.querySelector('.v-count');
+
   let items = [];
   let selected = new Set();
+  let filtered = []; // last-render order
+  let viewIndex = -1;
+
+  window.addEventListener('error', e => log('Error:', e.message||e.error));
 
   init();
 
@@ -48,11 +59,10 @@
       log('localStorage save error', e);
     }
   }
-
   function nowStamp(){
     const d = new Date();
     const pad = n => (n<10?'0':'')+n;
-    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
   }
 
   async function init(){
@@ -85,7 +95,7 @@
     let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
     for (const f of files){
       const { fullDataURL, thumbDataURL } = await compressToDataURLs(f, 2200, 0.85, 800, 0.82);
-      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\.[^.]+$/, ''), desc:'', tags:[], dataURL: thumbDataURL, full: fullDataURL };
+      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\\.[^.]+$/, ''), desc:'', tags:[], dataURL: thumbDataURL, full: fullDataURL };
       items.push(it);
     }
     render();
@@ -94,11 +104,11 @@
 
   function render(){
     const q = (search.value || '').toLowerCase();
-    const src = q ? items.filter(it => (it.title + it.desc + (it.tags||[]).join(' ')).toLowerCase().includes(q)) : items.slice();
-    src.sort((a,b) => (a.order||0)-(b.order||0));
-    count.textContent = src.length + ' / ' + items.length;
+    filtered = q ? items.filter(it => (it.title + it.desc + (it.tags||[]).join(' ')).toLowerCase().includes(q)) : items.slice();
+    filtered.sort((a,b) => (a.order||0)-(b.order||0));
+    count.textContent = filtered.length + ' / ' + items.length;
     grid.innerHTML = '';
-    for (const it of src){
+    for (const it of filtered){
       const node = tmpl.content.firstElementChild.cloneNode(true);
       const img = node.querySelector('.thumb');
       const t = node.querySelector('.title');
@@ -111,6 +121,10 @@
       const pick = node.querySelector('.pick');
 
       img.src = it.dataURL || it.full || '';
+      img.dataset.id = it.id; // for viewer
+      img.style.cursor = 'zoom-in';
+      img.onclick = () => openViewerById(it.id);
+
       t.value = it.title || '';
       d.value = it.desc || '';
       g.value = (it.tags || []).join(', ');
@@ -123,7 +137,7 @@
 
       up.onclick = () => { it.order = Math.max(0,(it.order||0)-1); render(); persist(); };
       down.onclick = () => { it.order = (it.order||0)+1; render(); persist(); };
-      rm.onclick = () => { if (!confirm('Remove this image?')) return; items = items.filter(x=>x.id!==it.id); selected.delete(it.id); render(); persist(); };
+      rm.onclick = () => { if (!confirm('Remove this image?')) return; const idx = items.findIndex(x=>x.id===it.id); if (idx>=0) items.splice(idx,1); selected.delete(it.id); render(); persist(); };
       rp.onclick = () => {
         const inp = document.createElement('input'); inp.type='file'; inp.accept='image/*';
         inp.onchange = async ev => {
@@ -142,39 +156,32 @@
     const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: items.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
     saveLS(out);
     if (forceDownload){
-      const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\s+/g,'_');
+      const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\\s+/g,'_');
       multiDownload(out, `${base}_${nowStamp()}.json`);
     }
   }
 
   function doExport(arr){
     const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: arr.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
-    const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\s+/g,'_');
+    const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\\s+/g,'_');
     multiDownload(out, `${base}_${nowStamp()}.json`);
   }
 
+  // Export splitter (~4.5MB chunks)
   function multiDownload(obj, baseName){
     const text = JSON.stringify(obj, null, 2);
     const max = 4.5 * 1024 * 1024;
-    if (text.length <= max){
-      downloadText(text, baseName);
-      return;
-    }
-    const items = obj.items;
-    let part = 1, start = 0;
-    while (start < items.length){
-      let end = start;
-      let chunk = { session: obj.session, title: obj.title, items: [] };
-      let size = 0;
-      while (end < items.length){
-        const cand = JSON.stringify(items[end]);
+    if (text.length <= max){ downloadText(text, baseName); return; }
+    const arr = obj.items; let part=1, start=0;
+    while (start < arr.length){
+      let end = start, size = 0; const chunk = { session: obj.session, title: obj.title, items: [] };
+      while (end < arr.length){
+        const cand = JSON.stringify(arr[end]);
         if (size + cand.length + 64 > max) break;
-        chunk.items.push(items[end]);
-        size += cand.length;
-        end++;
+        chunk.items.push(arr[end]); size += cand.length; end++;
       }
-      downloadText(JSON.stringify(chunk, null, 2), baseName.replace(/\.json$/, `-part${part}.json`));
-      part++; start = end;
+      downloadText(JSON.stringify(chunk, null, 2), baseName.replace(/\\.json$/, `-part${part}.json`));
+      part++; start=end;
     }
   }
   function downloadText(text, filename){
@@ -200,6 +207,65 @@
     }catch(err){ alert('Import failed: ' + (err.message||err)); }
   }
 
+  // ----- Fullscreen viewer logic -----
+  function openViewerById(id){
+    const idx = filtered.findIndex(it => it.id === id);
+    if (idx < 0) return;
+    openViewerAt(idx);
+  }
+  function openViewerAt(idx){
+    if (!filtered.length) return;
+    viewIndex = (idx + filtered.length) % filtered.length;
+    const it = filtered[viewIndex];
+    vImg.src = it.full || it.dataURL || '';
+    vCount.textContent = (viewIndex+1) + ' / ' + filtered.length;
+    viewer.classList.add('on');
+    viewer.setAttribute('aria-hidden','false');
+  }
+  function closeViewer(){
+    viewer.classList.remove('on');
+    viewer.setAttribute('aria-hidden','true');
+    viewIndex = -1;
+  }
+  function next(){ if (!filtered.length) return; openViewerAt(viewIndex+1); }
+  function prev(){ if (!filtered.length) return; openViewerAt(viewIndex-1); }
+
+  vNext.onclick = next;
+  vPrev.onclick = prev;
+  vClose.onclick = closeViewer;
+  viewer.addEventListener('click', (e) => {
+    if (e.target === viewer) closeViewer();
+  });
+
+  // Keyboard support
+  document.addEventListener('keydown', (e) => {
+    if (!viewer.classList.contains('on')) return;
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') prev();
+    else if (e.key === 'Escape') closeViewer();
+  });
+
+  // Swipe support
+  let touchX = 0, touchY = 0, swiping = false;
+  const SWIPE_THRESHOLD = 40;
+  viewer.addEventListener('touchstart', (e) => {
+    if (!viewer.classList.contains('on')) return;
+    const t = e.touches[0]; touchX = t.clientX; touchY = t.clientY; swiping = true;
+  }, {passive:true});
+  viewer.addEventListener('touchmove', (e) => {
+    if (viewer.classList.contains('on')) e.preventDefault();
+  }, {passive:false});
+  viewer.addEventListener('touchend', (e) => {
+    if (!swiping) return; swiping = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchX;
+    const dy = t.clientY - touchY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD){
+      if (dx < 0) next(); else prev();
+    }
+  });
+
+  // Image helpers -> data URLs
   async function compressToDataURLs(fileOrBlob, fullMax, fullQ, thumbMax, thumbQ){
     const full = await compressImage(fileOrBlob, fullMax, fullQ);
     const thumb = await compressImage(fileOrBlob, thumbMax, thumbQ);

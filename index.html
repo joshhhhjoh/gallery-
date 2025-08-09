@@ -49,7 +49,7 @@
   </main>
 
   <footer class="shell foot">
-    <span class="muted">JSON-first workflow: import/append/export any size. Offline by default.</span>
+    <span class="muted">JSON-first • Offline • Fullscreen viewer with arrows & swipe.</span>
   </footer>
 
   <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
@@ -77,6 +77,15 @@
       </div>
     </li>
   </template>
+
+  <!-- Full-screen viewer -->
+  <div id="viewer" aria-hidden="true">
+    <button class="v-close" aria-label="Close">✕</button>
+    <button class="v-prev" aria-label="Previous">‹</button>
+    <img class="v-img" alt="" />
+    <button class="v-next" aria-label="Next">›</button>
+    <div class="v-count"></div>
+  </div>
 
   <div id="log"></div>
 
