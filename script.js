@@ -1,15 +1,22 @@
-/* J//Gallery v3.3 — Offline stable. IndexedDB only. No network. */
+/* Dual-save: IndexedDB primary + localStorage fallback + manual Save button */
 (() => {
-  // Logger
   const logBox = document.getElementById('log');
   const log = (...a) => { const d = document.createElement('div'); d.textContent = a.map(String).join(' '); logBox.appendChild(d); logBox.scrollTop = logBox.scrollHeight; };
-  document.getElementById('toggleLog').onclick = () => logBox.classList.toggle('show');
   window.addEventListener('error', e => log('Error:', e.message || e.error));
 
-  // DB
-  const DB = 'jg_v3_3_offline'; const VER = 1;
+  const saveStatus = document.getElementById('saveStatus');
+  const isPrivate = (() => { try { return window.navigator && (window.safari && window.safari.privateBrowsing); } catch { return false; } })();
+
+  // Storage backends
+  const Backend = {
+    idb: 'IndexedDB',
+    ls: 'localStorage'
+  };
+  let backend = Backend.idb;
+
+  // DB (IndexedDB)
+  const DB = 'jg_v3_3_1'; const VER = 1;
   let db;
-  openDB().then(() => log('DB ready')).catch(e => log('DB fail', e));
   function openDB(){
     return new Promise((res, rej) => {
       const r = indexedDB.open(DB, VER);
@@ -31,18 +38,36 @@
       t.onerror = () => rej(t.error);
     });
   }
-  const put = it => tx('items','readwrite', s => s.put(it));
-  const del = id => tx('items','readwrite', s => s.delete(id));
-  const clearAll = () => tx('items','readwrite', s => s.clear());
-  const all = () => tx('items','readonly', s => new Promise((res, rej) => {
-    const arr = []; const r = s.openCursor();
-    r.onsuccess = e => { const c = e.target.result; if (c){ arr.push(c.value); c.continue(); } else res(arr); };
-    r.onerror = () => rej(r.error);
-  }));
-  const setMeta = (k,v)=>tx('meta','readwrite', s=>s.put({key:k,value:v}));
-  const getMeta = (k)=>tx('meta','readonly', s=>new Promise((res,rej)=>{ const r=s.get(k); r.onsuccess=()=>res(r.result?.value); r.onerror=()=>rej(r.error);}));
+  const putIDB = it => tx('items','readwrite', s=>s.put(it));
+  const delIDB = id => tx('items','readwrite', s=>s.delete(id));
+  const clearIDB = () => tx('items','readwrite', s=>s.clear());
+  const allIDB = () => tx('items','readonly', s=>new Promise((res,rej)=>{ const arr=[]; const r=s.openCursor(); r.onsuccess=e=>{ const c=e.target.result; if(c){ arr.push(c.value); c.continue(); } else res(arr); }; r.onerror=()=>rej(r.error);}));
+  const setMetaIDB = (k,v)=>tx('meta','readwrite', s=>s.put({key:k,value:v}));
+  const getMetaIDB = (k)=>tx('meta','readonly', s=>new Promise((res,rej)=>{ const r=s.get(k); r.onsuccess=()=>res(r.result?.value); r.onerror=()=>rej(r.error);}));
 
-  // UI
+  // Fallback (localStorage): store JSON with data URLs (heavier, but works when IDB is blocked)
+  const LSK = 'JG_V331_SAVE';
+  async function saveToLocal(items, title){
+    const out = { title, items: [] };
+    for (const it of items){
+      out.items.push({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: await blobToDataURL(it.blob) });
+    }
+    try{ localStorage.setItem(LSK, JSON.stringify(out)); }catch(e){ log('localStorage save fail', e); }
+  }
+  function loadFromLocal(){
+    try{
+      const raw = localStorage.getItem(LSK);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      for (const it of obj.items){
+        it.blob = dataURLToBlob(it.src); it.blobType = it.blob.type; delete it.src;
+      }
+      return obj;
+    }catch(e){ log('localStorage parse fail', e); return null; }
+  }
+  function setBadge(text){ saveStatus.textContent = 'Saving: ' + text; }
+
+  // UI refs
   const grid = document.getElementById('grid');
   const tmpl = document.getElementById('cardTemplate');
   const galleryTitle = document.getElementById('galleryTitle');
@@ -53,17 +78,46 @@
   const importJson = document.getElementById('importJson');
   const exportBtn = document.getElementById('exportJson');
   const newBtn = document.getElementById('newGallery');
+  const saveNow = document.getElementById('saveNow');
 
   // State
   let items = [];
 
   init();
+
   async function init(){
+    // Try IndexedDB first
     try{
-      galleryTitle.value = await getMeta('title') || 'J//Gallery';
-      items = await all();
+      await openDB();
+      backend = Backend.idb;
+      setBadge('IndexedDB');
+      // Load from IDB, or fallback to localStorage copy if empty
+      const t = await getMetaIDB('title');
+      galleryTitle.value = t || 'J//Gallery';
+      items = await allIDB();
+      if (!items.length){
+        const ls = loadFromLocal();
+        if (ls){
+          galleryTitle.value = ls.title || 'J//Gallery';
+          items = [];
+          let order = 0;
+          for (const it of ls.items){
+            const rec = { id: it.id || crypto.randomUUID(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], blobType: it.blob.type, blob: it.blob };
+            await putIDB(rec); items.push(rec);
+          }
+          await setMetaIDB('title', galleryTitle.value);
+        }
+      }
       render();
-    }catch(e){ log('Init error', e); }
+    }catch(err){
+      log('IndexedDB unavailable, falling back to localStorage', err);
+      backend = Backend.ls;
+      setBadge('localStorage');
+      const ls = loadFromLocal() || { title: 'J//Gallery', items: [] };
+      galleryTitle.value = ls.title;
+      items = ls.items || [];
+      render();
+    }
   }
 
   // Events
@@ -73,18 +127,23 @@
   importJson.onchange = doImport;
   newBtn.onclick = async () => {
     if (!confirm('Start a new, empty gallery?')) return;
-    await clearAll(); items = []; render();
+    if (backend === Backend.idb){ await clearIDB(); }
+    items = []; await autosave();
+    render();
   };
   search.oninput = render;
-  galleryTitle.oninput = () => setMeta('title', galleryTitle.value);
+  galleryTitle.oninput = async () => { if (backend === Backend.idb) await setMetaIDB('title', galleryTitle.value); await autosave(); };
+  saveNow.onclick = async () => { await autosave(true); toast('Saved'); };
 
   async function addFiles(fileList){
     const files = [...(fileList||[])];
     let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
     for (const f of files){
       const { full, thumb } = await compressBoth(f, 2200, 0.85, 800, 0.82);
-      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\.[^.]+$/, ''), desc:'', tags:[], blobType:full.type, blob:full, thumbType:thumb.type, thumb };
-      await put(it); items.push(it);
+      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\\.[^.]+$/, ''), desc:'', tags:[], blobType:full.type, blob:full, thumbType:thumb.type, thumb };
+      items.push(it);
+      if (backend === Backend.idb) await putIDB(it);
+      await autosave();
     }
     render();
   }
@@ -116,26 +175,47 @@
       d.value = it.desc || '';
       g.value = (it.tags || []).join(', ');
 
-      t.oninput = async () => { it.title = t.value; await put(it); };
-      d.oninput = async () => { it.desc = d.value; await put(it); };
-      g.oninput = async () => { it.tags = g.value.split(',').map(s=>s.trim()).filter(Boolean); await put(it); };
+      t.oninput = async () => { it.title = t.value; await dirty(it); };
+      d.oninput = async () => { it.desc = d.value; await dirty(it); };
+      g.oninput = async () => { it.tags = g.value.split(',').map(s=>s.trim()).filter(Boolean); await dirty(it); };
 
-      up.onclick = async () => { it.order = Math.max(0,(it.order||0)-1); await put(it); items = await all(); render(); };
-      down.onclick = async () => { it.order = (it.order||0)+1; await put(it); items = await all(); render(); };
-      rm.onclick = async () => { if (!confirm('Remove this image?')) return; await del(it.id); items = items.filter(x=>x.id!==it.id); render(); };
+      up.onclick = async () => { it.order = Math.max(0,(it.order||0)-1); await dirty(it,true); };
+      down.onclick = async () => { it.order = (it.order||0)+1; await dirty(it,true); };
+      rm.onclick = async () => { if (!confirm('Remove this image?')) return; if (backend===Backend.idb) await delIDB(it.id); items = items.filter(x=>x.id!==it.id); await autosave(); render(); };
       rp.onclick = () => {
         const inp = document.createElement('input'); inp.type='file'; inp.accept='image/*';
         inp.onchange = async ev => {
           const f = ev.target.files?.[0]; if (!f) return;
           const { full, thumb } = await compressBoth(f, 2200, 0.85, 800, 0.82);
           it.blob = full; it.blobType = full.type; it.thumb = thumb; it.thumbType = thumb.type;
-          await put(it); render();
+          await dirty(it);
         };
         inp.click();
       };
 
       grid.appendChild(node);
     }
+  }
+
+  async function dirty(it, rerender=false){
+    if (backend === Backend.idb) await putIDB(it);
+    await autosave();
+    if (rerender){ items = backend===Backend.idb ? await allIDB() : items.slice().sort((a,b)=>(a.order||0)-(b.order||0)); render(); }
+  }
+
+  let saveT = null;
+  async function autosave(force=false){
+    clearTimeout(saveT);
+    const run = async () => {
+      if (backend === Backend.ls){
+        await saveToLocal(items, galleryTitle.value || 'J//Gallery');
+      } else {
+        // keep a localStorage backup too (belt & suspenders)
+        try{ await saveToLocal(items, galleryTitle.value || 'J//Gallery'); }catch{}
+      }
+    };
+    if (force) return run();
+    saveT = setTimeout(run, 250);
   }
 
   async function doExport(){
@@ -155,19 +235,22 @@
       const file = e.target.files?.[0]; if (!file) return;
       const text = await file.text(); const obj = JSON.parse(text);
       if (!Array.isArray(obj.items)) throw new Error('Invalid JSON');
-      await clearAll(); items = [];
+      if (backend === Backend.idb) await clearIDB();
+      items = [];
       let order = 0;
       for (const it of obj.items){
         const full = it.src && it.src.startsWith('data:') ? dataURLToBlob(it.src) : new Blob();
         const { full:fullC, thumb } = await compressBoth(full, 2200, 0.85, 800, 0.82);
         const rec = { id: it.id || crypto.randomUUID(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], blobType: fullC.type, blob: fullC, thumbType: thumb.type, thumb };
-        await put(rec); items.push(rec);
+        if (backend === Backend.idb) await putIDB(rec);
+        items.push(rec);
       }
+      await autosave(true);
       render(); e.target.value='';
-    }catch(err){ log('Import error', err.message||err); alert('Import failed: '+(err.message||err)); }
+    }catch(err){ alert('Import failed: ' + (err.message||err)); }
   }
 
-  // Image helpers
+  // Image utils
   async function compressBoth(fileOrBlob, fullMax, fullQ, thumbMax, thumbQ){
     const full = await compressImage(fileOrBlob, fullMax, fullQ);
     const thumb = await compressImage(fileOrBlob, thumbMax, thumbQ);
@@ -188,7 +271,7 @@
       const canvas = drawToCanvas(img, maxSize);
       const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
       return blob || fileOrBlob;
-    }catch(e){ log('compress fail', e); return fileOrBlob; }
+    }catch(e){ return fileOrBlob; }
   }
   function blobToImage(blob){
     return new Promise((resolve) => {
@@ -221,5 +304,18 @@
     const arr = new Uint8Array(len);
     for (let i=0;i<len;i++) arr[i] = bin.charCodeAt(i);
     return new Blob([arr], { type: mime });
+  }
+
+  function toast(msg){
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.position='fixed'; el.style.bottom='24px'; el.style.right='16px';
+    el.style.padding='10px 12px'; el.style.border='1px solid #2a2a2a';
+    el.style.background='#141414'; el.style.borderRadius='10px'; el.style.color='#fff';
+    el.style.opacity='0'; el.style.transition='opacity .2s, transform .2s'; el.style.transform='translateY(6px)';
+    el.style.zIndex='60';
+    document.body.appendChild(el);
+    requestAnimationFrame(()=>{el.style.opacity='1'; el.style.transform='translateY(0)'});
+    setTimeout(()=>{el.style.opacity='0'; el.style.transform='translateY(6px)'; setTimeout(()=>el.remove(),200)},1400);
   }
 })();

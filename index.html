@@ -3,28 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>J//Gallery v3.3 (Offline)</title>
+  <title>J//Gallery</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="shell">
     <div class="brand">
       <div class="logo">J//</div>
-      <h1>Gallery v3.3</h1>
+      <h1>Gallery</h1>
     </div>
     <nav class="nav">
-      <div class="btn xl file-btn" aria-label="Add from Photos">
+      <div class="btn xl file-btn">
         Add from Photos
         <input id="uploadPhotos" type="file" accept="image/*" multiple />
       </div>
-      <div class="btn xl file-btn ghost" aria-label="Take Photo">
+      <div class="btn xl file-btn ghost">
         Take Photo
         <input id="uploadCamera" type="file" accept="image/*" capture="environment" />
       </div>
+      <button id="saveNow" class="btn">Save</button>
       <button id="exportJson" class="btn">Export</button>
       <label class="btn" for="importJson">Import</label>
       <button id="newGallery" class="btn danger">New</button>
-      <button id="toggleLog" class="btn sm">Show Log</button>
+      <span id="saveStatus" class="badge">Saving: …</span>
     </nav>
   </header>
 
@@ -43,7 +44,7 @@
   </main>
 
   <footer class="shell foot">
-    <span class="muted">Offline build — all data in IndexedDB on your device. No network needed.</span>
+    <span class="muted">Dual-save build — IndexedDB with automatic localStorage backup. Works offline.</span>
   </footer>
 
   <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
