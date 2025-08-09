@@ -1,4 +1,4 @@
-/* J//Gallery v3 — IndexedDB, iPhone friendly, zero overlays */
+/* J//Gallery v3.2 — crash-safe iPhone build */
 :root{
   --bg:#0b0b0b; --panel:#111; --ink:#fff; --ink-dim:#bfbfbf; --line:#1f1f1f;
 }
@@ -39,6 +39,8 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
 .title,.desc,.tags{width:100%;background:#0e0e0e;color:var(--ink);border:1px solid var(--line);padding:10px 12px;border-radius:12px;font-size:16px}
 .desc{resize:vertical;min-height:44px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+.sentinel{height:1px}
 
 .foot{padding:14px 16px 24px;border-top:1px solid var(--line);color:var(--ink-dim)}
 

@@ -3,19 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>J//Gallery v3 (IndexedDB)</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0e0e0e">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>J//Gallery v3.2 (IndexedDB)</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="shell">
     <div class="brand">
       <div class="logo">J//</div>
-      <h1>Gallery v3</h1>
+      <h1>Gallery v3.2</h1>
     </div>
     <nav class="nav">
       <div class="btn xl file-btn" aria-label="Add from Photos">
@@ -27,8 +22,10 @@
         <input id="uploadCamera" type="file" accept="image/*" capture="environment" />
       </div>
       <button id="addUrl" class="btn">Add URL</button>
-      <button id="exportJson" class="btn">Export</button>
+      <button id="exportJson" class="btn">Export (Full)</button>
+      <button id="exportCompact" class="btn">Export (Compact)</button>
       <label class="btn" for="importJson">Import</label>
+      <button id="retrofitThumbs" class="btn">Retrofit Thumbs</button>
       <button id="newGallery" class="btn danger">New</button>
     </nav>
   </header>
@@ -46,10 +43,11 @@
 
   <main class="shell">
     <ul id="grid" class="grid" aria-live="polite"></ul>
+    <div id="sentinel" class="sentinel"></div>
   </main>
 
   <footer class="shell foot">
-    <span class="muted">Powered by IndexedDB — hundreds of photos supported. Export to back up.</span>
+    <span class="muted">Optimized for iPhone: thumbnails, lazy-load, and batching to prevent Safari crashes.</span>
   </footer>
 
   <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
@@ -57,7 +55,7 @@
   <template id="cardTemplate">
     <li class="card">
       <div class="media">
-        <img class="thumb" alt="" />
+        <img class="thumb" alt="" loading="lazy" />
       </div>
       <div class="meta">
         <input class="title" placeholder="Title" />
@@ -74,14 +72,5 @@
   </template>
 
   <script src="script.js"></script>
-  <script>
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js', { scope: './' })
-          .catch(err => console.warn('SW registration failed', err));
-      });
-    }
-  </script>
 </body>
 </html>
