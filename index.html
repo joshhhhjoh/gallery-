@@ -4,7 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>J Gallery</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons-192.png">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="shell">
@@ -49,7 +54,7 @@
   </main>
 
   <footer class="shell foot">
-    <span class="muted">JSON-first • Offline • Fullscreen viewer with arrows & swipe.</span>
+    <span class="muted">PWA • Offline after first load • Fullscreen viewer + JSON-first workflow.</span>
   </footer>
 
   <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
@@ -89,6 +94,13 @@
 
   <div id="log"></div>
 
-  <script src="script.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?ver=v36').catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
