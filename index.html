@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>J//Gallery</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="shell">
+    <div class="brand">
+      <div class="logo">J//</div>
+      <h1>Gallery</h1>
+    </div>
+    <nav class="nav">
+      <label class="btn ghost file" for="uploadInput">Add Photo</label>
+      <button id="addUrl" class="btn ghost">Add URL</button>
+      <label class="btn" for="importJson">Import JSON</label>
+      <button id="exportJson" class="btn">Export</button>
+      <button id="saveLocal" class="btn">Save</button>
+      <button id="newGallery" class="btn danger">New</button>
+    </nav>
+  </header>
+
+  <section class="panel shell">
+    <div class="filters">
+      <input id="search" class="search" type="search" placeholder="Search title, description, tags…" />
+      <span class="muted" id="count"></span>
+    </div>
+    <div class="titlebar">
+      <input id="galleryTitle" class="titleInput" placeholder="Gallery title" />
+    </div>
+  </section>
+
+  <main class="shell">
+    <ul id="grid" class="grid" aria-live="polite"></ul>
+  </main>
+
+  <footer class="shell foot">
+    <span class="muted">Autosaves to this device. Use Export JSON to back up or share.</span>
+  </footer>
+
+  <!-- Inputs -->
+  <input type="file" id="uploadInput" accept="image/*,image/heic,image/heif" capture="environment" multiple style="position:fixed;left:-9999px;top:-9999px;" />
+  <input type="file" id="importJson" accept=".json,application/json" style="position:fixed;left:-9999px;top:-9999px;" />
+
+  <!-- Templates -->
+  <template id="cardTemplate">
+    <li class="card" draggable="true">
+      <div class="media">
+        <img class="thumb" alt="" />
+        <div class="overlay">
+          <button class="icon replace" title="Replace" aria-label="Replace image">↻</button>
+          <button class="icon move" title="Reorder" aria-label="Drag to reorder">⇅</button>
+          <button class="icon danger remove" title="Remove" aria-label="Remove image">✕</button>
+        </div>
+      </div>
+      <div class="meta">
+        <input class="title" placeholder="Title" />
+        <textarea class="desc" rows="2" placeholder="Description"></textarea>
+        <input class="tags" placeholder="tags, comma,separated" />
+      </div>
+    </li>
+  </template>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" hidden>
+    <button id="lightboxClose" class="icon close" aria-label="Close">✕</button>
+    <img id="lightboxImg" alt="" />
+    <div class="lightboxMeta">
+      <div id="lightboxTitle" class="lbTitle"></div>
+      <div id="lightboxDesc" class="lbDesc"></div>
+    </div>
+  </div>
+
+  <!-- Mobile bottom bar -->
+  <div class="dock">
+    <label class="dock-btn" for="uploadInput">Photos/Camera</label>
+    <button id="dockUrl" class="dock-btn">Add URL</button>
+    <button id="dockExport" class="dock-btn">Export</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
