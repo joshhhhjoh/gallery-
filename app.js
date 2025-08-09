@@ -1,6 +1,9 @@
-/* v3.5 — JSON-first + Fullscreen Viewer */
+
+/* v3.8 — same logic as 3.7 + icons + mixed layout */
 (() => {
-  const LSK = 'J_GALLERY_V35';
+  let p = false; // settings gate: must be true to open
+
+  const LSK = 'J_GALLERY_V38';
   const saveStatus = document.getElementById('saveStatus');
   const logBox = document.getElementById('log');
   const log = (...a) => { const d=document.createElement('div'); d.textContent=a.map(String).join(' '); logBox.appendChild(d); logBox.scrollTop=logBox.scrollHeight; };
@@ -21,6 +24,8 @@
   const saveNow = document.getElementById('saveNow');
   const selectAll = document.getElementById('selectAll');
   const clearSel = document.getElementById('clearSel');
+  const allTagsList = document.getElementById('allTags');
+  const tagFilters = document.getElementById('tagFilters');
 
   // Viewer refs
   const viewer = document.getElementById('viewer');
@@ -29,15 +34,24 @@
   const vNext = viewer.querySelector('.v-next');
   const vClose = viewer.querySelector('.v-close');
   const vCount = viewer.querySelector('.v-count');
+  const vFav = viewer.querySelector('.v-fav');
 
   let items = [];
+let activeFavOnly = false;
   let selected = new Set();
   let filtered = []; // last-render order
   let viewIndex = -1;
+  let activeTagFilter = null;
+
+  // zoom/pan state
+  let scale = 1, startScale = 1;
+  let panX = 0, panY = 0;
+  let lastTouches = [];
+  let lastTapTime = 0;
 
   window.addEventListener('error', e => log('Error:', e.message||e.error));
 
-  init();
+  loadPrefs(); applyPrefs(); init();
 
   function loadLS(){
     try{
@@ -90,12 +104,49 @@
   selectAll.onclick = () => { items.forEach(it => selected.add(it.id)); render(); };
   clearSel.onclick = () => { selected.clear(); render(); };
 
+  function uniqueTags(){
+    const set = new Set();
+    for (const it of items){ (it.tags||[]).forEach(t=>set.add(t)); }
+    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+  }
+  function tagColor(tag){
+    let h=0; for (let i=0;i<tag.length;i++) h = (h*31 + tag.charCodeAt(i)) % 360;
+    return `hsl(${h} 90% 45%)`;
+  }
+  function refreshTagSuggestions(){
+    allTagsList.innerHTML = '';
+    for (const t of uniqueTags()){
+      const opt = document.createElement('option');
+      opt.value = t;
+      allTagsList.appendChild(opt);
+    }
+    // tag filters row (h-scrollable)
+    tagFilters.innerHTML = '';
+    for (const t of uniqueTags()){
+      const btn = document.createElement('button');
+      btn.className = 'tagchip';
+      btn.textContent = t;
+      btn.style.borderColor = tagColor(t);
+      btn.style.color = tagColor(t);
+      if (activeTagFilter === t) { btn.style.background = '#151515'; }
+      btn.onclick = () => { activeTagFilter = (activeTagFilter===t) ? null : t; render(); };
+      tagFilters.appendChild(btn);
+    }
+    if (activeTagFilter){
+      const clear = document.createElement('button');
+      clear.className = 'btn sm';
+      clear.textContent = 'Clear Tag Filter';
+      clear.onclick = () => { activeTagFilter = null; render(); };
+      tagFilters.appendChild(clear);
+    }
+  }
+
   async function addFiles(fileList){
     const files = [...(fileList||[])];
     let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
     for (const f of files){
       const { fullDataURL, thumbDataURL } = await compressToDataURLs(f, 2200, 0.85, 800, 0.82);
-      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\\.[^.]+$/, ''), desc:'', tags:[], dataURL: thumbDataURL, full: fullDataURL };
+      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\.[^.]+$/, ''), desc:'', tags:[], dataURL: thumbDataURL, full: fullDataURL, fav:false };
       items.push(it);
     }
     render();
@@ -103,10 +154,17 @@
   }
 
   function render(){
+    refreshTagSuggestions();
     const q = (search.value || '').toLowerCase();
-    filtered = q ? items.filter(it => (it.title + it.desc + (it.tags||[]).join(' ')).toLowerCase().includes(q)) : items.slice();
-    filtered.sort((a,b) => (a.order||0)-(b.order||0));
+    filtered = items.filter(it => {
+      const textMatch = (it.title + it.desc + (it.tags||[]).join(' ')).toLowerCase().includes(q);
+      const tagMatch = activeTagFilter ? (it.tags||[]).includes(activeTagFilter) : true;
+      const favMatch = activeFavOnly ? !!it.fav : true;
+      return textMatch && tagMatch && favMatch;
+    }).sort((a,b) => (a.order||0)-(b.order||0));
+
     count.textContent = filtered.length + ' / ' + items.length;
+    renderFavToggle();
     grid.innerHTML = '';
     for (const it of filtered){
       const node = tmpl.content.firstElementChild.cloneNode(true);
@@ -114,26 +172,42 @@
       const t = node.querySelector('.title');
       const d = node.querySelector('.desc');
       const g = node.querySelector('.tags');
+      const chips = node.querySelector('.tagchips');
       const up = node.querySelector('.up');
       const down = node.querySelector('.down');
       const rm = node.querySelector('.remove');
       const rp = node.querySelector('.replace');
       const pick = node.querySelector('.pick');
+      const favBtn = node.querySelector('.fav');
 
       img.src = it.dataURL || it.full || '';
       img.dataset.id = it.id; // for viewer
       img.style.cursor = 'zoom-in';
       img.onclick = () => openViewerById(it.id);
 
+      favBtn.style.opacity = it.fav ? 1 : 0.5;
+      favBtn.onclick = (ev) => { ev.stopPropagation(); it.fav = !it.fav; favBtn.style.opacity = it.fav?1:0.5; persist(); };
+
       t.value = it.title || '';
       d.value = it.desc || '';
       g.value = (it.tags || []).join(', ');
+      g.oninput = () => { it.tags = g.value.split(',').map(s=>s.trim()).filter(Boolean); render(); persist(); };
       pick.checked = selected.has(it.id);
       pick.onchange = () => { if (pick.checked) selected.add(it.id); else selected.delete(it.id); };
 
+      chips.innerHTML = '';
+      for (const tg of (it.tags||[])){
+        const chip = document.createElement('span');
+        chip.className = 'tagchip';
+        chip.textContent = tg;
+        chip.style.borderColor = tagColor(tg);
+        chip.style.color = tagColor(tg);
+        chip.onclick = () => { activeTagFilter = tg; render(); };
+        chips.appendChild(chip);
+      }
+
       t.oninput = () => { it.title = t.value; persist(); };
       d.oninput = () => { it.desc = d.value; persist(); };
-      g.oninput = () => { it.tags = g.value.split(',').map(s=>s.trim()).filter(Boolean); persist(); };
 
       up.onclick = () => { it.order = Math.max(0,(it.order||0)-1); render(); persist(); };
       down.onclick = () => { it.order = (it.order||0)+1; render(); persist(); };
@@ -153,21 +227,20 @@
   }
 
   function persist(forceDownload=false){
-    const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: items.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
+    const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: items.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, fav: !!it.fav, src: it.full || it.dataURL })) };
     saveLS(out);
     if (forceDownload){
-      const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\\s+/g,'_');
+      const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\s+/g,'_');
       multiDownload(out, `${base}_${nowStamp()}.json`);
     }
   }
 
   function doExport(arr){
-    const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: arr.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
-    const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\\s+/g,'_');
+    const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: arr.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, fav: !!it.fav, src: it.full || it.dataURL })) };
+    const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\s+/g,'_');
     multiDownload(out, `${base}_${nowStamp()}.json`);
   }
 
-  // Export splitter (~4.5MB chunks)
   function multiDownload(obj, baseName){
     const text = JSON.stringify(obj, null, 2);
     const max = 4.5 * 1024 * 1024;
@@ -180,7 +253,7 @@
         if (size + cand.length + 64 > max) break;
         chunk.items.push(arr[end]); size += cand.length; end++;
       }
-      downloadText(JSON.stringify(chunk, null, 2), baseName.replace(/\\.json$/, `-part${part}.json`));
+      downloadText(JSON.stringify(chunk, null, 2), baseName.replace(/\.json$/, `-part${part}.json`));
       part++; start=end;
     }
   }
@@ -200,30 +273,41 @@
       if (!append){ items = []; selected.clear(); sessionName.value = obj.session || sessionName.value; galleryTitle.value = obj.title || galleryTitle.value; }
       let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
       for (const it of obj.items){
-        items.push({ id: it.id || crypto.randomUUID(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], full: it.src || '', dataURL: it.src || '' });
+        items.push({ id: it.id || crypto.randomUUID(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], fav: !!it.fav, full: it.src || '', dataURL: it.src || '' });
       }
       render(); persist();
       e.target.value='';
     }catch(err){ alert('Import failed: ' + (err.message||err)); }
   }
 
-  // ----- Fullscreen viewer logic -----
+  // Viewer logic (pinch, double-tap, swipe, favorites)
   function openViewerById(id){
     const idx = filtered.findIndex(it => it.id === id);
     if (idx < 0) return;
     openViewerAt(idx);
   }
-  function openViewerAt(idx){
+  
+let slideTimer = null;
+function startSlideshow(){ if (!prefs.slideshow) return; stopSlideshow(); slideTimer = setInterval(() => {
+  let p = false; // settings gate: must be true to open
+ next(); }, Math.max(800, prefs.slideMs||2500)); }
+function stopSlideshow(){ if (slideTimer){ clearInterval(slideTimer); slideTimer=null; } }
+
+function openViewerAt(idx){
     if (!filtered.length) return;
     viewIndex = (idx + filtered.length) % filtered.length;
     const it = filtered[viewIndex];
     vImg.src = it.full || it.dataURL || '';
     vCount.textContent = (viewIndex+1) + ' / ' + filtered.length;
-    viewer.classList.add('on');
+    vFav.style.opacity = it.fav ? 1 : 0.5;
+    resetZoom();
+    viewer.classList.add('on','show');
     viewer.setAttribute('aria-hidden','false');
+    startSlideshow();
   }
   function closeViewer(){
-    viewer.classList.remove('on');
+    viewer.classList.remove('on','show');
+    stopSlideshow();
     viewer.setAttribute('aria-hidden','true');
     viewIndex = -1;
   }
@@ -233,11 +317,17 @@
   vNext.onclick = next;
   vPrev.onclick = prev;
   vClose.onclick = closeViewer;
-  viewer.addEventListener('click', (e) => {
-    if (e.target === viewer) closeViewer();
-  });
+  vFav.onclick = () => { toggleFavCurrent(); };
 
-  // Keyboard support
+  function toggleFavCurrent(){
+    if (viewIndex<0) return;
+    const it = filtered[viewIndex];
+    it.fav = !it.fav;
+    vFav.style.opacity = it.fav ? 1 : 0.5;
+    persist();
+    render();
+  }
+
   document.addEventListener('keydown', (e) => {
     if (!viewer.classList.contains('on')) return;
     if (e.key === 'ArrowRight') next();
@@ -245,79 +335,191 @@
     else if (e.key === 'Escape') closeViewer();
   });
 
-  // Swipe support
-  let touchX = 0, touchY = 0, swiping = false;
-  const SWIPE_THRESHOLD = 40;
-  viewer.addEventListener('touchstart', (e) => {
-    if (!viewer.classList.contains('on')) return;
-    const t = e.touches[0]; touchX = t.clientX; touchY = t.clientY; swiping = true;
-  }, {passive:true});
-  viewer.addEventListener('touchmove', (e) => {
-    if (viewer.classList.contains('on')) e.preventDefault();
-  }, {passive:false});
-  viewer.addEventListener('touchend', (e) => {
-    if (!swiping) return; swiping = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchX;
-    const dy = t.clientY - touchY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD){
-      if (dx < 0) next(); else prev();
-    }
-  });
+  let scale=1, startScale=1, panX=0, panY=0, lastTouches=[], lastTapTime=0;
+  function resetZoom(){ scale = 1; panX = panY = 0; applyTransform(); }
+  function applyTransform(){ vImg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function distance(t1, t2){ const dx=t2.clientX - t1.clientX; const dy=t2.clientY - t1.clientY; return Math.hypot(dx,dy); }
 
-  // Image helpers -> data URLs
-  async function compressToDataURLs(fileOrBlob, fullMax, fullQ, thumbMax, thumbQ){
-    const full = await compressImage(fileOrBlob, fullMax, fullQ);
-    const thumb = await compressImage(fileOrBlob, thumbMax, thumbQ);
-    const fullDataURL = await blobToDataURL(full);
-    const thumbDataURL = await blobToDataURL(thumb);
-    return { fullDataURL, thumbDataURL };
+  viewer.addEventListener('touchstart', onTouchStart, {passive:false});
+  viewer.addEventListener('touchmove', onTouchMove, {passive:false});
+  viewer.addEventListener('touchend', onTouchEnd, {passive:false});
+
+  function onTouchStart(e){
+    if (!viewer.classList.contains('on')) return;
+    if (e.touches.length === 1){
+      const now = Date.now();
+      if (now - lastTapTime < 300){ e.preventDefault(); scale = (scale > 1) ? 1 : 2.0; panX = panY = 0; applyTransform(); }
+      lastTapTime = now;
+      lastTouches = [e.touches[0]];
+    } else if (e.touches.length === 2){
+      e.preventDefault();
+      lastTouches = [e.touches[0], e.touches[1]];
+      startScale = scale;
+    }
   }
-  function drawToCanvas(img, maxSize){
-    const w = img.naturalWidth||img.width, h = img.naturalHeight||img.height;
-    const scale = Math.min(1, maxSize / Math.max(w,h));
-    const cw = Math.max(1, Math.round(w*scale)), ch = Math.max(1, Math.round(h*scale));
-    const c = document.createElement('canvas'); c.width=cw; c.height=ch;
-    const ctx = c.getContext('2d', { alpha:false, desynchronized:true });
-    ctx.drawImage(img, 0, 0, cw, ch);
-    return c;
+  function onTouchMove(e){
+    if (!viewer.classList.contains('on')) return;
+    if (e.touches.length === 2){
+      e.preventDefault();
+      const [t1, t2] = [e.touches[0], e.touches[1]];
+      const [p1, p2] = lastTouches;
+      const ds = distance(t1,t2) / distance(p1,p2);
+      scale = Math.min(5, Math.max(1, startScale * ds));
+      applyTransform();
+    } else if (e.touches.length === 1 && scale > 1){
+      e.preventDefault();
+      const t = e.touches[0];
+      const p = lastTouches[0] || t;
+      panX += (t.clientX - p.clientX);
+      panY += (t.clientY - p.clientY);
+      lastTouches = [t];
+      applyTransform();
+    }
   }
-  async function compressImage(fileOrBlob, maxSize, quality){
-    const img = await blobToImage(fileOrBlob);
-    const canvas = drawToCanvas(img, maxSize);
-    const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
-    return blob || fileOrBlob;
-  }
-  function blobToImage(blob){
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(blob);
-      img.onload = () => { try{ URL.revokeObjectURL(url); }catch{}; resolve(img); };
-      img.onerror = () => resolve(new Image());
-      img.src = url;
-    });
-  }
-  function canvasToBlob(canvas, type, quality){
-    return new Promise((resolve) => {
-      if (canvas.toBlob) canvas.toBlob(b => resolve(b), type, quality);
-      else resolve(dataURLToBlob(canvas.toDataURL(type, quality)));
-    });
-  }
-  function blobToDataURL(blob){
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
-      r.onerror = reject;
-      r.readAsDataURL(blob);
-    });
-  }
-  function dataURLToBlob(dataURL){
-    const [h, b64] = dataURL.split(',');
-    const mime = /data:(.*?);base64/.exec(h)?.[1] || 'application/octet-stream';
-    const bin = atob(b64);
-    const len = bin.length;
-    const arr = new Uint8Array(len);
-    for (let i=0;i<len;i++) arr[i] = bin.charCodeAt(i);
-    return new Blob([arr], { type: mime });
+  function onTouchEnd(e){
+    if (!viewer.classList.contains('on')) return;
+    if (scale === 1 && e.changedTouches.length === 1){
+      const t = e.changedTouches[0];
+      const last = lastTouches[0];
+      if (last){
+        const dx = t.clientX - last.clientX;
+        if (Math.abs(dx) > 40){ if (dx < 0) next(); else prev(); }
+      }
+    }
+    lastTouches = [];
   }
 })();
+
+// --- Settings / Preferences ---
+const LSK_PREFS = 'J_GALLERY_PREFS_V39';
+let prefs = {
+  labels: 'auto',       // 'auto' | 'on' | 'off'
+  cardMin: 240,         // px min for grid
+  favFilter: false,     // show favorites-only toggle in filters
+  slideshow: false,     // autoplay in viewer
+  slideMs: 2500
+};
+function loadPrefs(){
+  try{
+    const raw = localStorage.getItem(LSK_PREFS);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    prefs = { ...prefs, ...obj };
+  }catch{}
+}
+function savePrefs(){
+  localStorage.setItem(LSK_PREFS, JSON.stringify(prefs));
+}
+// Apply prefs to DOM/CSS
+function applyPrefs(){
+  // Labels
+  document.body.classList.remove('labels-on','labels-off');
+  if (prefs.labels === 'on') document.body.classList.add('labels-on');
+  else if (prefs.labels === 'off') document.body.classList.add('labels-off');
+  // Grid min width
+  document.documentElement.style.setProperty('--card-min', prefs.cardMin + 'px');
+  // Favorites filter control visibility handled in render()
+  // Slideshow speed used in viewer
+  const gv = document.getElementById('prefGridVal'); if (gv) gv.textContent = String(prefs.cardMin);
+  const sv = document.getElementById('prefSlideMsVal'); if (sv) sv.textContent = String(prefs.slideMs);
+}
+// Settings panel wiring
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsClose = document.getElementById('settingsClose');
+
+settingsBtn?.addEventListener('click', () => {
+  // Toggle the gate first; first tap enables, next tap opens
+  if (p !== true) { p = true; return; }
+  openSettings();
+});
+settingsPanel?.querySelector('.backdrop')?.addEventListener('click', closeSettings);
+settingsClose?.addEventListener('click', closeSettings);
+settingsPanel.setAttribute('aria-hidden','true'); });
+
+// Controls
+const prefLabels = document.getElementById('prefLabels');
+const prefGrid = document.getElementById('prefGrid');
+const prefFavFilter = document.getElementById('prefFavFilter');
+const prefSlideshow = document.getElementById('prefSlideshow');
+const prefSlideMs = document.getElementById('prefSlideMs');
+
+const settingsExport = document.getElementById('settingsExport');
+const settingsImportInput = document.getElementById('settingsImportInput');
+const settingsClear = document.getElementById('settingsClear');
+
+function hydrateSettingsUI(){
+  if (!prefLabels) return;
+  prefLabels.value = prefs.labels;
+  prefGrid.value = prefs.cardMin;
+  prefFavFilter.checked = !!prefs.favFilter;
+  prefSlideshow.checked = !!prefs.slideshow;
+  prefSlideMs.value = prefs.slideMs;
+  applyPrefs();
+}
+
+prefLabels?.addEventListener('change', () => { prefs.labels = prefLabels.value; savePrefs(); applyPrefs(); });
+prefGrid?.addEventListener('input', () => { prefs.cardMin = parseInt(prefGrid.value,10)||240; savePrefs(); applyPrefs(); });
+prefFavFilter?.addEventListener('change', () => { prefs.favFilter = !!prefFavFilter.checked; savePrefs(); render(); });
+prefSlideshow?.addEventListener('change', () => { prefs.slideshow = !!prefSlideshow.checked; savePrefs(); });
+prefSlideMs?.addEventListener('input', () => { prefs.slideMs = parseInt(prefSlideMs.value,10)||2500; savePrefs(); applyPrefs(); });
+
+settingsExport?.addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(prefs,null,2));
+  a.download = 'gallery_settings.json'; a.click();
+});
+settingsImportInput?.addEventListener('change', async (e) => {
+  const f = e.target.files?.[0]; if (!f) return;
+  try{
+    const text = await f.text();
+    const obj = JSON.parse(text);
+    prefs = { ...prefs, ...obj };
+    savePrefs(); hydrateSettingsUI(); render();
+    alert('Settings imported');
+  }catch(err){ alert('Failed to import settings: '+(err.message||err)); }
+  e.target.value='';
+});
+settingsClear?.addEventListener('click', () => {
+  if (!confirm('Clear all local data (images + settings)? This cannot be undone.')) return;
+  localStorage.removeItem(LSK); // gallery data
+  localStorage.removeItem(LSK_PREFS); // settings
+  items = []; selected = new Set(); render();
+  alert('Cleared. Reloading...'); location.reload();
+});
+
+// Add a favorites-only toggle to filters if enabled
+function renderFavToggle(){
+  let host = document.getElementById('filtersFavHost');
+  if (!host){
+    host = document.createElement('div');
+    host.id = 'filtersFavHost';
+    const filters = document.querySelector('.filters');
+    filters?.appendChild(host);
+  }
+  host.innerHTML = '';
+  if (!prefs.favFilter) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn sm';
+  btn.textContent = (activeFavOnly ? 'All items' : 'Favorites only');
+  btn.onclick = () => { activeFavOnly = !activeFavOnly; render(); };
+  host.appendChild(btn);
+}
+
+
+
+function openSettings(){
+  if (typeof p === 'undefined' || p !== true) return; // gate
+  const settingsPanel = document.getElementById('settingsPanel');
+  if (!settingsPanel) return;
+  document.body.classList.add('settings-open');
+  settingsPanel.classList.add('on');
+  settingsPanel.setAttribute('aria-hidden','false');
+}
+function closeSettings(){
+  const settingsPanel = document.getElementById('settingsPanel');
+  if (!settingsPanel) return;
+  settingsPanel.classList.remove('on');
+  settingsPanel.setAttribute('aria-hidden','true');
+  document.body.classList.remove('settings-open');
+}
