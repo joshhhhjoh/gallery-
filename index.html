@@ -22,8 +22,10 @@
         <input id="uploadCamera" type="file" accept="image/*" capture="environment" />
       </div>
       <button id="saveNow" class="btn primary">Save</button>
-      <button id="exportJson" class="btn">Export</button>
-      <label class="btn" for="importJson">Import</label>
+      <button id="exportAll" class="btn">Export All</button>
+      <button id="exportSelected" class="btn">Export Selected</button>
+      <label class="btn" for="importJson">Import (Replace)</label>
+      <label class="btn" for="appendJson">Append JSON</label>
       <button id="newGallery" class="btn danger">New</button>
       <span id="saveStatus" class="badge">Not saved</span>
     </nav>
@@ -31,11 +33,14 @@
 
   <section class="panel shell">
     <div class="row">
+      <input id="sessionName" class="titleInput" placeholder="Session name (used in filenames)" />
       <input id="galleryTitle" class="titleInput" placeholder="Gallery title" />
       <span class="muted" id="count"></span>
     </div>
     <div class="filters">
       <input id="search" class="search" type="search" placeholder="Search title, description, tags…" />
+      <button id="selectAll" class="btn sm">Select All</button>
+      <button id="clearSel" class="btn sm">Clear</button>
     </div>
   </section>
 
@@ -44,13 +49,18 @@
   </main>
 
   <footer class="shell foot">
-    <span class="muted">Hard Save: localStorage + automatic backup on Save. Offline by default.</span>
+    <span class="muted">JSON-first workflow: import/append/export any size. Offline by default.</span>
   </footer>
 
   <input type="file" id="importJson" accept=".json,application/json" class="hidden-import" />
+  <input type="file" id="appendJson" accept=".json,application/json" class="hidden-import" />
 
   <template id="cardTemplate">
     <li class="card">
+      <label class="sel">
+        <input type="checkbox" class="pick" />
+        <span></span>
+      </label>
       <div class="media">
         <img class="thumb" alt="Image" />
       </div>

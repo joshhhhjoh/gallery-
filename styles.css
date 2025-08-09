@@ -1,4 +1,4 @@
-/* v3.4 Hard Save — simple, bold UI */
+/* v3.4.1 JSON-flow tweaks */
 :root{ --bg:#0b0b0b; --panel:#111; --ink:#fff; --ink-dim:#bfbfbf; --line:#1f1f1f; }
 *{box-sizing:border-box} html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;padding-bottom:env(safe-area-inset-bottom)}
@@ -7,7 +7,7 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
 .brand{display:flex;align-items:center;gap:10px}
 .logo{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800}
 .nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.btn{position:relative;background:#151515;border:1px solid var(--line);color:var(--ink);padding:12px 14px;border-radius:12px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+.btn{position:relative;background:#151515;border:1px solid var(--line);color:#fff;padding:12px 14px;border-radius:12px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
 .btn:hover{background:#1a1a1a;transform:translateY(-1px);transition:transform .18s,background .18s}
 .btn.ghost{background:transparent}
 .btn.danger{border-color:#3a1e1e;color:#ffbdbd}
@@ -23,14 +23,18 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
 .panel{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
 .filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.search{flex:1 1 340px;background:#0e0e0e;border:1px solid var(--line);color:var(--ink);padding:12px 14px;border-radius:12px;min-width:0}
-.muted{color:var(--ink-dim)}
-.titleInput{flex:1 1 320px;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:600 20px/1.2 ui-sans-serif, system-ui}
+.search{flex:1 1 340px;background:#0e0e0e;border:1px solid var(--line);color:#fff;padding:12px 14px;border-radius:12px;min-width:0}
+.muted{color:#bfbfbf}
+.titleInput{flex:1 1 320px;background:transparent;color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:600 18px/1.2 ui-sans-serif, system-ui}
 
 .grid{list-style:none;margin:0;padding:18px 0 24px;display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#111;display:flex;flex-direction:column}
+.card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#111;display:flex;flex-direction:column;position:relative}
 .media{background:#0f0f0f}
 .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+
+.sel{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:6px;background:#0e0e0ee6;border:1px solid #2a2a2a;border-radius:10px;padding:4px 6px}
+.sel input{width:16px;height:16px}
+.sel span{font-size:12px;color:#bbb}
 
 .meta{padding:12px;display:grid;gap:10px}
 .title,.desc,.tags{width:100%;background:#0e0e0e;color:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;font-size:16px}
@@ -49,7 +53,7 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
   .btn.xl{flex:1 1 100%}
   .nav .btn{flex:1 1 calc(50% - 5px); text-align:center}
   .search{flex:1 1 100%}
-  .titleInput{font-size:18px}
+  .titleInput{font-size:16px}
   .grid{gap:12px}
 }
 @media (max-width: 360px){ .nav .btn{flex:1 1 100%} }

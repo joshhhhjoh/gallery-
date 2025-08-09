@@ -1,6 +1,6 @@
-/* v3.4 Hard Save — localStorage primary + JSON backup on Save */
+/* v3.4.1 — JSON-first workflow */
 (() => {
-  const LSK = 'J_GALLERY_V34';
+  const LSK = 'J_GALLERY_V341';
   const saveStatus = document.getElementById('saveStatus');
   const logBox = document.getElementById('log');
   const log = (...a) => { const d=document.createElement('div'); d.textContent=a.map(String).join(' '); logBox.appendChild(d); logBox.scrollTop=logBox.scrollHeight; };
@@ -8,17 +8,23 @@
 
   const grid = document.getElementById('grid');
   const tmpl = document.getElementById('cardTemplate');
+  const sessionName = document.getElementById('sessionName');
   const galleryTitle = document.getElementById('galleryTitle');
   const count = document.getElementById('count');
   const search = document.getElementById('search');
   const upPhotos = document.getElementById('uploadPhotos');
   const upCam = document.getElementById('uploadCamera');
   const importJson = document.getElementById('importJson');
-  const exportBtn = document.getElementById('exportJson');
+  const appendJson = document.getElementById('appendJson');
+  const exportAllBtn = document.getElementById('exportAll');
+  const exportSelBtn = document.getElementById('exportSelected');
   const newBtn = document.getElementById('newGallery');
   const saveNow = document.getElementById('saveNow');
+  const selectAll = document.getElementById('selectAll');
+  const clearSel = document.getElementById('clearSel');
 
   let items = [];
+  let selected = new Set();
 
   init();
 
@@ -27,12 +33,9 @@
       const raw = localStorage.getItem(LSK);
       if (!raw) return null;
       const obj = JSON.parse(raw);
-      // rehydrate data URLs to show immediately
-      for (const it of obj.items){
-        if (it.src && typeof it.src === 'string'){
-          it.dataURL = it.src; // keep dataURL form
-        }
-      }
+      for (const it of obj.items){ if (it.src) it.full = it.dataURL = it.src; delete it.src; }
+      sessionName.value = obj.session || '';
+      galleryTitle.value = obj.title || 'J Gallery';
       return obj;
     }catch(e){ log('parse fail', e); return null; }
   }
@@ -46,40 +49,46 @@
     }
   }
 
+  function nowStamp(){
+    const d = new Date();
+    const pad = n => (n<10?'0':'')+n;
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  }
+
   async function init(){
     const obj = loadLS();
-    if (obj){
-      galleryTitle.value = obj.title || 'J Gallery';
-      items = obj.items || [];
-    } else {
-      galleryTitle.value = 'J Gallery';
-      items = [];
-    }
+    if (obj){ items = obj.items || []; } else { galleryTitle.value = 'J Gallery'; sessionName.value=''; items = []; }
     render();
   }
 
   // Events
   upPhotos.onchange = e => addFiles(e.target.files);
   upCam.onchange = e => addFiles(e.target.files);
-  exportBtn.onclick = doExport;
-  importJson.onchange = doImport;
-  newBtn.onclick = async () => {
-    if (!confirm('Start a new, empty gallery?')) return;
-    items = []; persist(); render();
+  exportAllBtn.onclick = () => doExport(items);
+  exportSelBtn.onclick = () => {
+    const arr = items.filter(it => selected.has(it.id));
+    if (!arr.length){ alert('No items selected'); return; }
+    doExport(arr);
   };
+  importJson.onchange = e => doImport(e, /*append*/false);
+  appendJson.onchange = e => doImport(e, /*append*/true);
+  newBtn.onclick = () => { if (!confirm('New empty gallery?')) return; items = []; selected.clear(); persist(true); render(); };
   search.oninput = render;
   galleryTitle.oninput = () => persist();
-  saveNow.onclick = async () => { persist(true); };
+  sessionName.oninput = () => persist();
+  saveNow.onclick = () => persist(true);
+  selectAll.onclick = () => { items.forEach(it => selected.add(it.id)); render(); };
+  clearSel.onclick = () => { selected.clear(); render(); };
 
   async function addFiles(fileList){
     const files = [...(fileList||[])];
     let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
     for (const f of files){
       const { fullDataURL, thumbDataURL } = await compressToDataURLs(f, 2200, 0.85, 800, 0.82);
-      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\\.[^.]+$/, ''), desc:'', tags:[], dataURL: thumbDataURL, full: fullDataURL };
+      const it = { id: crypto.randomUUID(), order: ++order, title: f.name.replace(/\.[^.]+$/, ''), desc:'', tags:[], dataURL: thumbDataURL, full: fullDataURL };
       items.push(it);
     }
-    render(); // show instantly
+    render();
     persist();
   }
 
@@ -99,11 +108,14 @@
       const down = node.querySelector('.down');
       const rm = node.querySelector('.remove');
       const rp = node.querySelector('.replace');
+      const pick = node.querySelector('.pick');
 
       img.src = it.dataURL || it.full || '';
       t.value = it.title || '';
       d.value = it.desc || '';
       g.value = (it.tags || []).join(', ');
+      pick.checked = selected.has(it.id);
+      pick.onchange = () => { if (pick.checked) selected.add(it.id); else selected.delete(it.id); };
 
       t.oninput = () => { it.title = t.value; persist(); };
       d.oninput = () => { it.desc = d.value; persist(); };
@@ -111,7 +123,7 @@
 
       up.onclick = () => { it.order = Math.max(0,(it.order||0)-1); render(); persist(); };
       down.onclick = () => { it.order = (it.order||0)+1; render(); persist(); };
-      rm.onclick = () => { if (!confirm('Remove this image?')) return; items = items.filter(x=>x.id!==it.id); render(); persist(); };
+      rm.onclick = () => { if (!confirm('Remove this image?')) return; items = items.filter(x=>x.id!==it.id); selected.delete(it.id); render(); persist(); };
       rp.onclick = () => {
         const inp = document.createElement('input'); inp.type='file'; inp.accept='image/*';
         inp.onchange = async ev => {
@@ -126,49 +138,68 @@
     }
   }
 
-  // SAVE: to localStorage and auto-backup download if forced or first save
-  let firstSaveDone = false;
   function persist(forceDownload=false){
-    const out = { title: galleryTitle.value || 'J Gallery', items: items.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
+    const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: items.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
     saveLS(out);
-    if (forceDownload || !firstSaveDone){
-      firstSaveDone = true;
-      downloadJSON(out, (out.title || 'gallery') + '.json');
+    if (forceDownload){
+      const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\s+/g,'_');
+      multiDownload(out, `${base}_${nowStamp()}.json`);
     }
   }
 
-  function downloadJSON(obj, filename){
-    try{
-      const a = document.createElement('a');
-      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(obj, null, 2));
-      a.download = filename;
-      a.click();
-      saveStatus.textContent = 'Saved + backup downloaded';
-    }catch(e){ log('download fail', e); }
+  function doExport(arr){
+    const out = { session: sessionName.value || '', title: galleryTitle.value || 'J Gallery', items: arr.map(it => ({ id: it.id, order: it.order, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
+    const base = (sessionName.value || galleryTitle.value || 'gallery').replace(/\s+/g,'_');
+    multiDownload(out, `${base}_${nowStamp()}.json`);
   }
 
-  async function doExport(){
-    const out = { title: galleryTitle.value || 'J Gallery', items: items.map(it => ({ id: it.id, title: it.title, desc: it.desc, tags: it.tags, src: it.full || it.dataURL })) };
-    downloadJSON(out, (out.title || 'gallery') + '.json');
+  function multiDownload(obj, baseName){
+    const text = JSON.stringify(obj, null, 2);
+    const max = 4.5 * 1024 * 1024;
+    if (text.length <= max){
+      downloadText(text, baseName);
+      return;
+    }
+    const items = obj.items;
+    let part = 1, start = 0;
+    while (start < items.length){
+      let end = start;
+      let chunk = { session: obj.session, title: obj.title, items: [] };
+      let size = 0;
+      while (end < items.length){
+        const cand = JSON.stringify(items[end]);
+        if (size + cand.length + 64 > max) break;
+        chunk.items.push(items[end]);
+        size += cand.length;
+        end++;
+      }
+      downloadText(JSON.stringify(chunk, null, 2), baseName.replace(/\.json$/, `-part${part}.json`));
+      part++; start = end;
+    }
+  }
+  function downloadText(text, filename){
+    const a = document.createElement('a');
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
+    a.download = filename;
+    a.click();
+    saveStatus.textContent = 'Saved + file downloaded';
   }
 
-  async function doImport(e){
+  async function doImport(e, append){
     try{
       const file = e.target.files?.[0]; if (!file) return;
       const text = await file.text(); const obj = JSON.parse(text);
       if (!Array.isArray(obj.items)) throw new Error('Invalid JSON');
-      items = [];
-      let order = 0;
+      if (!append){ items = []; selected.clear(); sessionName.value = obj.session || sessionName.value; galleryTitle.value = obj.title || galleryTitle.value; }
+      let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
       for (const it of obj.items){
-        const src = it.src || '';
-        items.push({ id: it.id || crypto.randomUUID(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], full: src, dataURL: src });
+        items.push({ id: it.id || crypto.randomUUID(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], full: it.src || '', dataURL: it.src || '' });
       }
-      render(); persist(true);
+      render(); persist();
       e.target.value='';
     }catch(err){ alert('Import failed: ' + (err.message||err)); }
   }
 
-  // Image helpers -> data URLs
   async function compressToDataURLs(fileOrBlob, fullMax, fullQ, thumbMax, thumbQ){
     const full = await compressImage(fileOrBlob, fullMax, fullQ);
     const thumb = await compressImage(fileOrBlob, thumbMax, thumbQ);
