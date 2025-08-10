@@ -270,3 +270,15 @@ header.shell .nav .icon-btn:last-child { margin-right: 0 !important; }
             mask-image: linear-gradient(to right, black 0%, black calc(100% - 28px), transparent 100%);
   }
 }
+
+
+/* === Josh: bulletproof file pickers (iOS tap fix) === */
+.file-btn{ position:relative; overflow:hidden; }
+.file-btn .icon-label{ pointer-events:none; }
+.file-btn input{
+  position:absolute; inset:0;
+  opacity:0; appearance:none;
+  cursor:pointer;
+  z-index:2;                 /* on top so taps hit it */
+  pointer-events:auto;       /* ensure it receives the tap */
+}

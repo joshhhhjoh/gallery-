@@ -24,6 +24,27 @@
     tagFilters: document.getElementById('tagFilters'),
     viewer: document.getElementById('viewer')
   };
+
+  // === Robust file pickers (iOS/scrollable nav safe) ===
+  const lblImport = document.querySelector('label[for="importJson"]');
+  const lblAppend = document.querySelector('label[for="appendJson"]');
+  if (lblImport && els.importJson){
+    lblImport.addEventListener('click', (e)=>{ e.preventDefault(); els.importJson.click(); });
+  }
+  if (lblAppend && els.appendJson){
+    lblAppend.addEventListener('click', (e)=>{ e.preventDefault(); els.appendJson.click(); });
+  }
+  if (els.upPhotos && els.upPhotos.parentElement){
+    els.upPhotos.parentElement.addEventListener('click', (e)=>{
+      if (e.target !== els.upPhotos){ e.preventDefault(); els.upPhotos.click(); }
+    });
+  }
+  if (els.upCam && els.upCam.parentElement){
+    els.upCam.parentElement.addEventListener('click', (e)=>{
+      if (e.target !== els.upCam){ e.preventDefault(); els.upCam.click(); }
+    });
+  }
+
   const v = {
     img: els.viewer?.querySelector('.v-img'),
     prev: els.viewer?.querySelector('.v-prev'),
@@ -393,3 +414,24 @@
   })();
 
 })();
+  // === Robust file pickers (tap-safe) ===
+  (()=>{
+    const clickIt = (lab, inp)=>{
+      if (!lab || !inp) return;
+      lab.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); inp.click(); });
+      lab.addEventListener('touchend', (e)=>{ e.preventDefault(); e.stopPropagation(); inp.click(); });
+    };
+    clickIt(document.querySelector('label[for="importJson"]'), document.getElementById('importJson'));
+    clickIt(document.querySelector('label[for="appendJson"]'), document.getElementById('appendJson'));
+
+    const pLab = document.querySelector('#uploadPhotos')?.parentElement;
+    if (pLab){
+      pLab.addEventListener('click', (e)=>{ if (e.target.id!=='uploadPhotos'){ e.preventDefault(); document.getElementById('uploadPhotos').click(); } });
+      pLab.addEventListener('touchend', (e)=>{ if (e.target.id!=='uploadPhotos'){ e.preventDefault(); document.getElementById('uploadPhotos').click(); } });
+    }
+    const cLab = document.querySelector('#uploadCamera')?.parentElement;
+    if (cLab){
+      cLab.addEventListener('click', (e)=>{ if (e.target.id!=='uploadCamera'){ e.preventDefault(); document.getElementById('uploadCamera').click(); } });
+      cLab.addEventListener('touchend', (e)=>{ if (e.target.id!=='uploadCamera'){ e.preventDefault(); document.getElementById('uploadCamera').click(); } });
+    }
+  })();
