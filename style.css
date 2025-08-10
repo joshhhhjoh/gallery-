@@ -15,11 +15,15 @@ header.shell{display:flex;align-items:center;justify-content:space-between;gap:1
   -webkit-overflow-scrolling:touch; overflow-y:hidden; white-space:nowrap; scroll-snap-type:x mandatory;
   flex-wrap:nowrap; flex:0 0 auto;
 }
+
+#sessionName::placeholder{
+font-size:15px;
+}
 .icon-btn,.btn{border:none;background:transparent;color:#fff;cursor:pointer}
 .icon-btn{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:72px;padding:10px 12px;border-radius:12px;border:1px solid #242424;background:#141414}
 .icon-btn:hover{background:#191919;transform:translateY(-1px);transition:.18s}
-.icon-label{display:block;font-size:11px;color:#d0d0d0;white-space:normal;max-width:72px;text-align:center}
-.file-btn{position:relative;overflow:hidden}
+.icon-label{display:flex;font-size:16px;color:#d0d0d0;white-max-width:72px;text-align:center;flex-direction:column;align-items:center;justify-content:center;}
+.file-btn{position:relative;overflow:hidden;}
 .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;appearance:none}
 
 .badge{font-size:12px;border:1px solid #2a2a2a;padding:6px 8px;border-radius:10px;color:#bfbfbf;margin-left:6px}
