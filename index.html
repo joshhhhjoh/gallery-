@@ -102,6 +102,7 @@
       <button id="selectAll" class="btn sm">Select All</button>
       <button id="clearSel" class="btn sm">Clear</button>
     </div>
+<div class="shell" id="activeTagBar" style="padding:8px 16px 0;"></div>
   </section>
 
   <main class="shell">
@@ -128,7 +129,8 @@
         <input class="title" placeholder="Title" />
         <textarea class="desc" rows="2" placeholder="Description"></textarea>
         <input class="tags" placeholder="tags, comma,separated" />
-        <div class="actions">
+        
+        <div class="tagchips"></div><div class="actions">
           <button class="btn sm up" title="Move up">▲</button>
           <button class="btn sm down" title="Move down">▼</button>
           <button class="btn sm replace" title="Replace">Replace</button>

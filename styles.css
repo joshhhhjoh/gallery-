@@ -345,3 +345,14 @@ body{ padding-top: 96px; }
 @media (max-width: 768px){
   body{ padding-top: 112px; }
 }
+
+
+/* Tag chips + active tag filter */
+.tagchips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px }
+.tagchip{ padding:4px 8px; border-radius:999px; border:1px solid #2a2a2a; font-size:12px; color:#ddd; background:#111; cursor:pointer; user-select:none }
+.tagchip:hover{ background:#151515 }
+.tagchip.active{ background:#1a1a1a; border-color:#3a3a3a; color:#fff }
+
+.activeTagWrap{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.activeTagBadge{ padding:6px 10px; border-radius:999px; font-size:13px; background:#151515; border:1px solid #2a2a2a; color:#ddd }
+.activeTagClear{ padding:6px 10px; border-radius:10px; font-size:13px; background:#201818; border:1px solid #3a1e1e; color:#ffbdbd; cursor:pointer }

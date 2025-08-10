@@ -32,7 +32,8 @@
 
   let items = [];
   let selected = new Set();
-  let filtered = []; // last-render order
+  let filtered = [];
+  let activeTag = null; // last-render order
   let viewIndex = -1;
 
   window.addEventListener('error', e => log('Error:', e.message||e.error));
@@ -102,11 +103,34 @@
     persist();
   }
 
+  
+  function renderActiveTagBar(){
+    const host = document.getElementById('activeTagBar');
+    if (!host) return;
+    host.innerHTML = '';
+    if (!activeTag) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'activeTagWrap shell';
+    const badge = document.createElement('div');
+    badge.className = 'activeTagBadge';
+    badge.textContent = 'Filtering by: ' + activeTag;
+    const clr = document.createElement('button');
+    clr.className = 'activeTagClear';
+    clr.textContent = 'Clear filter';
+    clr.onclick = () => { activeTag = null; render(); };
+    wrap.appendChild(badge); wrap.appendChild(clr);
+    host.appendChild(wrap);
+  }
+
   function render(){
     const q = (search.value || '').toLowerCase();
-    filtered = q ? items.filter(it => (it.title + it.desc + (it.tags||[]).join(' ')).toLowerCase().includes(q)) : items.slice();
+    filtered = items.filter(it => {
+  const textMatch = (it.title + it.desc + (it.tags||[]).join(' ')).toLowerCase().includes(q);
+  const tagMatch = activeTag ? (it.tags||[]).includes(activeTag) : true;
+  return textMatch && tagMatch;
+});
     filtered.sort((a,b) => (a.order||0)-(b.order||0));
-    count.textContent = filtered.length + ' / ' + items.length;
+    count.textContent = filtered.length + ' / ' + items.length; renderActiveTagBar();
     grid.innerHTML = '';
     for (const it of filtered){
       const node = tmpl.content.firstElementChild.cloneNode(true);
@@ -114,6 +138,7 @@
       const t = node.querySelector('.title');
       const d = node.querySelector('.desc');
       const g = node.querySelector('.tags');
+      const chips = node.querySelector('.tagchips');
       const up = node.querySelector('.up');
       const down = node.querySelector('.down');
       const rm = node.querySelector('.remove');
@@ -133,7 +158,7 @@
 
       t.oninput = () => { it.title = t.value; persist(); };
       d.oninput = () => { it.desc = d.value; persist(); };
-      g.oninput = () => { it.tags = g.value.split(',').map(s=>s.trim()).filter(Boolean); persist(); };
+      g.oninput = () => { it.tags = g.value.split(',').map(s=>s.trim()).filter(Boolean); persist(); render(); };
 
       up.onclick = () => { it.order = Math.max(0,(it.order||0)-1); render(); persist(); };
       down.onclick = () => { it.order = (it.order||0)+1; render(); persist(); };
@@ -147,6 +172,18 @@
         };
         inp.click();
       };
+
+      
+      // Render tag chips
+      chips.innerHTML = '';
+      (it.tags||[]).forEach(tg => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tagchip' + (activeTag===tg ? ' active' : '');
+        b.textContent = tg;
+        b.onclick = (ev) => { ev.stopPropagation(); activeTag = (activeTag===tg ? null : tg); render(); };
+        chips.appendChild(b);
+      });
 
       grid.appendChild(node);
     }
