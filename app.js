@@ -121,7 +121,6 @@ const settingsClear = document.getElementById('settingsClear');
     }
   function nowStamp(){
     const d = new Date();
-  async function init(){
     const obj = loadLS();
   function uniqueTags(){
     const set = new Set();
@@ -186,7 +185,6 @@ function openViewerAt(idx){
     if (!viewer.classList.contains('on')) return;
   function onTouchEnd(e){
     if (!viewer.classList.contains('on')) return;
-function loadPrefs(){
   try{
     const raw = localStorage.getItem(LSK_PREFS);
     if (!raw) return;
@@ -195,9 +193,7 @@ function loadPrefs(){
   }catch{}
 function savePrefs(){
   localStorage.setItem(LSK_PREFS, JSON.stringify(prefs));
-function applyPrefs(){
   // Labels
-function hydrateSettingsUI(){
   if (!prefLabels) return;
 function renderFavToggle(){
   let host = document.getElementById('filtersFavHost');
@@ -207,7 +203,6 @@ function renderFavToggle(){
   // Viewer refs
   // zoom/pan state
   window.addEventListener('error', e => log('Error:', e.message||e.error));
-  loadPrefs(); applyPrefs(); init();
   }
   }
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
@@ -420,13 +415,9 @@ settingsClose?.addEventListener('click', () => { settingsPanel.classList.remove(
   prefFavFilter.checked = !!prefs.favFilter;
   prefSlideshow.checked = !!prefs.slideshow;
   prefSlideMs.value = prefs.slideMs;
-  applyPrefs();
 }
-prefLabels?.addEventListener('change', () => { prefs.labels = prefLabels.value; savePrefs(); applyPrefs(); });
-prefGrid?.addEventListener('input', () => { prefs.cardMin = parseInt(prefGrid.value,10)||240; savePrefs(); applyPrefs(); });
 prefFavFilter?.addEventListener('change', () => { prefs.favFilter = !!prefFavFilter.checked; savePrefs(); render(); });
 prefSlideshow?.addEventListener('change', () => { prefs.slideshow = !!prefSlideshow.checked; savePrefs(); });
-prefSlideMs?.addEventListener('input', () => { prefs.slideMs = parseInt(prefSlideMs.value,10)||2500; savePrefs(); applyPrefs(); });
 settingsExport?.addEventListener('click', () => {
   a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(prefs,null,2));
   a.download = 'gallery_settings.json'; a.click();
@@ -434,7 +425,6 @@ settingsExport?.addEventListener('click', () => {
 settingsImportInput?.addEventListener('change', async (e) => {
   try{
     prefs = { ...prefs, ...obj };
-    savePrefs(); hydrateSettingsUI(); render();
     alert('Settings imported');
   }catch(err){ alert('Failed to import settings: '+(err.message||err)); }
   e.target.value='';
@@ -459,3 +449,14 @@ settingsClear?.addEventListener('click', () => {
   btn.onclick = () => { activeFavOnly = !activeFavOnly; render(); };
   host.appendChild(btn);
 }
+
+  async function init(){
+function loadPrefs(){
+function applyPrefs(){
+function hydrateSettingsUI(){
+  loadPrefs(); applyPrefs(); init();
+  applyPrefs();
+prefLabels?.addEventListener('change', () => { prefs.labels = prefLabels.value; savePrefs(); applyPrefs(); });
+prefGrid?.addEventListener('input', () => { prefs.cardMin = parseInt(prefGrid.value,10)||240; savePrefs(); applyPrefs(); });
+prefSlideMs?.addEventListener('input', () => { prefs.slideMs = parseInt(prefSlideMs.value,10)||2500; savePrefs(); applyPrefs(); });
+    savePrefs(); hydrateSettingsUI(); render();
