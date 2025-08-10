@@ -1,14 +1,11 @@
-/* Service Worker: offline shell for Josh's gallery */
-const CACHE = 'josh-gal-v1';
-const CORE = [
-  './',
-  './index.html',
-  './styles.css',
-  './script.js',
-];
+/* Service Worker: offline shell for josh-gal (v4) */
+const CACHE = 'josh-gal-v4';
+const CORE = ['./','./index.html','./style.css','./app.js','./manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -18,17 +15,25 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Cache-first for same-origin; fall back to network
 self.addEventListener('fetch', (e) => {
-  const req = e.request;
-  const url = new URL(req.url);
-  if (url.origin === location.origin) {
+  // Only handle GET requests from our origin; skip data: and blob:
+  if (e.request.method !== 'GET') return;
+  try {
+    const url = new URL(e.request.url);
+    if (url.protocol === 'data:' || url.protocol === 'blob:') return;
+    if (url.origin !== self.location.origin) return;
+
     e.respondWith(
-      caches.match(req).then(hit => hit || fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-        return res;
-      }).catch(() => caches.match('./index.html')))
+      caches.match(e.request).then(hit => {
+        if (hit) return hit;
+        return fetch(e.request).then((r) => {
+          const copy = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy));
+          return r;
+        }).catch(() => caches.match('./index.html'));
+      })
     );
+  } catch (err) {
+    // If URL parsing fails (e.g., opaque requests), ignore.
   }
 });

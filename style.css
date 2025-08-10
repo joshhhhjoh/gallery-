@@ -8,22 +8,22 @@
     .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
     .logo{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800}
     .nav{ overflow:visible; 
-      display:flex;align-items:center;gap:10px;flex:1 1 auto;
-      overflow-x:auto; white-space:nowrap; padding:8px 0;
+      display:flex;flex:1 1 auto;
+        
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    }
-    .nav::-webkit-scrollbar{ display:none }
-    .icon-btn, .btn{position:relative;background:#151515;border:1px solid var(--line);color:#fff;border-radius:12px;cursor:pointer;touch-action:manipulation}
+    padding-top:6px;padding-bottom:8px;display:flex;align-items:flex-start;gap:12px;padding:8px 12px;overflow-x:auto;white-space:nowrap;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+    .nav::-webkit-scrollbar{ display:none display:flex;align-items:flex-start;gap:12px;padding:8px 12px;overflow-x:auto;white-space:nowrap;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+    .icon-btn, .btn{position:relative;background:#151515;color:#fff;cursor:pointer;touch-action:manipulationflex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
     .btn{padding:12px 14px;white-space:nowrap}
-    .icon-btn{width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto}
-    .icon-btn svg{width:20px;height:20px;display:block}
-    .icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-    .icon-label{font-size:12px;line-height:1.1;color:#d0d0d0;display:block}
+    .icon-btn{width:42px;display:grid;place-items:center;flex:0 0 autodisplay:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
+    
+    .icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6pxdisplay:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
+    .icon-label{display:block;font-size:11px;line-height:1.1;color:#d0d0d0;text-align:center;white-space:normal;max-width:72px}
 /* Hide labels only on very wide screens (desktop/large tablets) */
 @media (min-width: 1000px){
-  .icon-label{display:none}
+  .icon-label{display:block;font-size:11px;line-height:1.1;color:#d0d0d0;text-align:center;white-space:normal;max-width:72px}
 }
-    .icon-btn:hover, .btn:hover{background:#1a1a1a;transform:translateY(-1px);transition:transform .18s,background .18s}
+    .icon-btn:hover, .btn:hover{background:#1a1a1a;transform:translateY(-1px);transition:transform .18s,background .18sdisplay:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
     .btn.primary{border-color:#2b3bff;color:#cfd4ff}
     .btn.danger{border-color:#3a1e1e;color:#ffbdbd}
     .file-btn{position:relative;overflow:hidden}
@@ -86,8 +86,8 @@
     }
   
 /* Settings: label control classes */
-body.labels-off .icon-label{ display:none !important }
-body.labels-on .icon-label{ display:block !important }
+body.labels-off .icon-label{display:block;font-size:11px;line-height:1.1;color:#d0d0d0;text-align:center;white-space:normal;max-width:72px}
+body.labels-on .icon-label{display:block;font-size:11px;line-height:1.1;color:#d0d0d0;text-align:center;white-space:normal;max-width:72px}
 
 /* Settings panel */
 #settingsPanel{ position:fixed; inset:0; display:none; z-index:10000; }
@@ -115,7 +115,159 @@ body.labels-on .icon-label{ display:block !important }
   padding-bottom:calc(14px + env(safe-area-inset-bottom));
 }
 
+button.icon-btn, label.icon-btn, .file-btn {
+    border: none !important;
+    background: none !important;
+    
+display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
 
-/* Gate: settings hidden unless explicitly opened */
-#settingsPanel{ display:none !important }
-body.settings-open #settingsPanel{ display:block !important }
+label.icon-btn.file-btn{overflow:visibledisplay:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
+
+.icon-btn{scroll-snap-align:center}
+
+button.icon-btn, label.icon-btn{border:none !important;border-radius:0 !important;background:transparent !important}
+
+.icon-btn i, 
+
+.icon-btn{color:#fff}
+
+
+
+.nav{color:#fff}
+
+
+/* === Clean toolbar rules === */
+.icon-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 12px;
+  min-width:68px;
+  height:auto;
+  background:transparent;
+  border:none;
+  color:#fff;
+  scroll-snap-align:center;
+}
+.icon-btn svg{
+  display:block;
+  width:22px;
+  height:22px;
+  stroke: currentColor;
+  fill: none;
+}
+.icon-label{
+  display:block;
+  font-size:11px;
+  line-height:1.1;
+  color:#d0d0d0;
+  text-align:center;
+  white-space:normal;
+  max-width:72px;
+  margin-top:2px;
+}
+@media (min-width: 1000px){
+  .icon-label{ display:none; }
+}
+.nav{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:8px 12px;
+  overflow-x:auto;
+  white-space:nowrap;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  color:#fff;
+}
+label.icon-btn.file-btn{ overflow:visible }
+
+
+/* === 1:1 Look Overrides (Screenshot match) === */
+
+/* Global */
+:root{
+  --bg:#0b0b0b;
+  --panel:#111111;
+  --ink:#eaeaea;
+  --line:#1f1f1f;
+}
+body{ background:var(--bg); color:var(--ink); }
+
+/* Sticky header, soft shadow */
+header.shell{
+  position: sticky; top: 0; z-index: 1000;
+  background:#0e0e0e;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  border-bottom:1px solid var(--line);
+  min-height:64px;
+}
+
+/* Brand */
+.brand .logo{
+  width: 34px; height: 34px; border-radius: 10px;
+  border:1px solid var(--line);
+  display:grid; place-items:center; font-weight:800;
+}
+.brand h1{
+  margin:0; font-weight:800; letter-spacing:.2px;
+}
+
+/* Toolbar “pill” */
+.nav{
+  background:#0f0f0f;
+  border:1px solid #1d1d1d;
+  border-radius:16px;
+  padding:10px 12px;
+  gap:14px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 8px 28px rgba(0,0,0,.45);
+  flex:0 0 auto;
+}
+
+/* Icon buttons with label below */
+.icon-btn{
+  background:#141414;
+  border:1px solid #242424;
+  border-radius:12px;
+  width:auto; min-width:70px;
+  padding:10px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.icon-btn:hover{ background:#191919; transform:translateY(-1px); }
+.icon-btn svg{ width:22px; height:22px }
+.icon-label{ display:block; font-size:12px; color:#d0d0d0; }
+
+/* Inputs + counters */
+.titleInput, .search{
+  background:#0e0e0e; color:#fff;
+  border:1px solid var(--line);
+  border-radius:12px; padding:12px 14px;
+}
+.badge{ border-radius:12px; border:1px solid #2a2a2a; }
+
+/* Card look */
+.card{
+  border-radius:16px; overflow:hidden;
+  border:1px solid var(--line);
+  background:#111111;
+}
+.media{ background:#0f0f0f; }
+.thumb{ border-radius:0; }
+
+/* Selection checkbox style (rounded square) */
+.sel{
+  top:10px; left:10px;
+  background:#0e0e0ee6;
+  border:1px solid #2a2a2a; border-radius:12px; padding:6px 6px;
+}
+.sel input{ appearance:auto; width:18px; height:18px; }
+
+/* Footer text weight */
+.foot{ color:#9a9a9a; }
+
+/* Viewer controls centered vertically, same rounded buttons */
+#viewer .v-prev, #viewer .v-next, #viewer .v-close, #viewer .v-fav{
+  background:#101010e0; border:1px solid #2a2a2a; border-radius:12px;
+}

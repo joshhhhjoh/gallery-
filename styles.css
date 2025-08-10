@@ -1,358 +1,97 @@
-/* v3.5 JSON-first + Viewer */
-:root{ --bg:#0b0b0b; --panel:#111; --ink:#fff; --ink-dim:#bfbfbf; --line:#1f1f1f; }
-*{box-sizing:border-box} html,body{height:100% }
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;padding-bottom:env(safe-area-inset-bottom) }
-.shell{max-width:1120px;margin:0 auto;padding:0 16px}
-
-.brand{display:flex;align-items:center;gap:10px}
-.logo{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800}
-.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.btn{position:relative;background:#151515;border:1px solid var(--line);color:#fff;padding:12px 14px;border-radius:12px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
-.btn:hover{background:#1a1a1a;transform:translateY(-1px);transition:transform .18s,background .18s}
-.btn.ghost{background:transparent}
-.btn.danger{border-color:#3a1e1e;color:#ffbdbd}
-.btn.primary{border-color:#2b3bff;color:#cfd4ff}
-.btn.sm{padding:8px 10px;border-radius:10px;font-size:14px}
-.btn.xl{padding:14px 16px;font-size:16px}
-.file-btn{position:relative;overflow:hidden}
-.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none}
-.hidden-import{position:fixed;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px}
-
-.badge{font-size:12px;border:1px solid #2a2a2a;padding:6px 8px;border-radius:10px;color:#bfbfbf}
-
-.panel{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
-.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.search{flex:1 1 340px;background:#0e0e0e;border:1px solid var(--line);color:#fff;padding:12px 14px;border-radius:12px;min-width:0}
-.muted{color:#bfbfbf}
-.titleInput{flex:1 1 320px;background:transparent;color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:600 18px/1.2 ui-sans-serif, system-ui}
-
-.grid{list-style:none;margin:0;padding:18px 0 24px;display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#111;display:flex;flex-direction:column;position:relative}
-.media{background:#0f0f0f}
-.thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
-
-.sel{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:6px;background:#0e0e0ee6;border:1px solid #2a2a2a;border-radius:10px;padding:4px 6px}
-.sel input{width:16px;height:16px}
-.sel span{font-size:12px;color:#bbb}
-
-.meta{padding:12px;display:grid;gap:10px}
-.title,.desc,.tags{width:100%;background:#0e0e0e;color:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;font-size:16px}
-.desc{resize:vertical;min-height:44px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-
-.foot{padding:14px 16px 24px;border-top:1px solid var(--line);color:#8d8d8d}
-
-/* --- Full-screen viewer --- */
-#viewer{
-  position:fixed; inset:0; background:rgba(0,0,0,.95);
-  display:none; align-items:center; justify-content:center; z-index:9999;
-}
-#viewer.on{ display:flex }
-#viewer .v-img{
-  max-width: min(96vw, 1600px);
-  max-height: 88vh;
-  object-fit: contain;
-  box-shadow: 0 8px 40px rgba(0,0,0,.6);
-}
-#viewer .v-prev, #viewer .v-next, #viewer .v-close{
-  position:absolute; background:#101010e0; border:1px solid #2a2a2a; color:#fff;
-  width:44px; height:44px; border-radius:12px; display:grid; place-items:center; cursor:pointer;
-  font-size:24px;
-}
-#viewer .v-prev{ left:16px; top:50%; transform:translateY(-50%); }
-#viewer .v-next{ right:16px; top:50%; transform:translateY(-50%); }
-#viewer .v-close{ top:16px; right:16px; font-size:18px; }
-#viewer .v-count{
-  position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
-  font-size:12px; color:#ddd; background:#101010e0; border:1px solid #2a2a2a; padding:6px 10px; border-radius:10px;
-}
-
-#log{position:fixed;bottom:12px;left:12px;right:12px;max-height:40vh;overflow:auto;background:#0e0e0e;border:1px solid #222;border-radius:10px;padding:8px 10px;
-     color:#ddd;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;display:none;z-index:99}
-#log.show{display:block}
-
-@media (max-width: 430px){
-  
-  .btn{padding:12px 12px;font-size:15px}
-  .btn.xl{flex:1 1 100%}
-  .nav .btn{flex:1 1 calc(50% - 5px); text-align:center}
-  .search{flex:1 1 100%}
-  .titleInput{font-size:16px}
-  .grid{gap:12px}
-}
-@media (max-width: 360px){ .nav .btn{flex:1 1 100%} }
+:root{--bg:#0c0f10;--card:#111518;--ink:#e5f2ed;--muted:#9ec8b7;--border:#1f2a2e;--mint:#2ee6a6;--mint-d:#1dbb86;--radius:14px;--max:980px;--pad:18px}
+*{box-sizing:border-box} html{scroll-behavior:auto}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.55;overflow-wrap:anywhere}
+a{color:var(--mint);text-decoration:none} a:hover{text-decoration:underline}
+header{position:sticky;top:0;background:#0b0e0f;border-bottom:1px solid var(--border);z-index:1000}
+.wrap{max-width:var(--max);margin:0 auto;padding:10px var(--pad);display:flex;align-items:center;justify-content:space-between;gap:12px;height:64px}
+.brand{font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:#2ee6a6;box-shadow:0 0 16px rgba(46,230,166,.6)}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-block;background:linear-gradient(180deg,var(--mint),var(--mint-d));color:#05140e;border:none;border-radius:12px;padding:8px 12px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--mint);border:1px solid var(--mint)}
+.container{max-width:var(--max);margin:0 auto;padding:var(--pad);display:grid;gap:16px;padding-bottom:96px;grid-template-columns:220px 1fr}
+.side{position:sticky;top:76px;align-self:start;z-index:10;max-width:220px}
+.side .nav{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px}
+.side .nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--ink);line-height:1.3}
+.side .nav a.active{background:rgba(46,230,166,.12);border:1px solid var(--mint)}
+.side .nav a:hover{background:rgba(46,230,166,.12)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+.card h2{margin:.3em 0 .6em}
+.grid{display:grid;gap:12px} @media(min-width:760px){.grid.two{grid-template-columns:1fr 1fr}}
+.kbd{border:1px solid #233238;background:#0a0e10;border-radius:8px;padding:2px 6px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+small.muted{color:var(--muted)}
+details.group{border:1px solid var(--border);border-radius:12px;overflow:hidden}
+details.group summary{cursor:pointer;display:flex;align-items:center;gap:8px;padding:12px 14px;background:#0e1316;border-bottom:1px solid var(--border);font-weight:700}
+details.group summary::after{content:"▾";margin-left:auto;transition:transform .2s ease}
+details.group[open] summary::after{transform:rotate(-180deg)}
+details.group .inner{padding:12px 14px}
+.step{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.step .num{min-width:28px;height:28px;border-radius:50%;background:linear-gradient(180deg,var(--mint),var(--mint-d));color:#04140e;display:grid;place-items:center;font-weight:800}
+.check{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--border);border-radius:10px;background:#0e1316}
+.check input{transform:scale(1.05);margin-top:4px}
+.callout{padding:12px;border:1px solid var(--border);border-radius:10px;background:#0d1214}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0e1316;border:1px solid var(--border);font-size:.85rem}
+.tools{display:grid;gap:10px}
+.copyrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.copyrow code{background:#0e1316;border:1px solid var(--border);padding:6px 8px;border-radius:8px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.meter{height:12px;border-radius:999px;background:#0c1113;border:1px solid var(--border);overflow:hidden}
+.meter > span{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff5e5e,#ffc857,#2ee6a6)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.tabs button{background:transparent;border:1px solid var(--border);color:var(--ink);padding:8px 12px;border-radius:8px;cursor:pointer;flex:1 1 auto}
+.tabs button.active{border-color:var(--mint);color:var(--mint)}
+.tabcontent{display:none} .tabcontent.active{display:block} .tabcontent a{display:inline-block;max-width:100%}
+.warn{position:fixed;left:0;right:0;bottom:12px;margin:auto;max-width:var(--max);padding:12px;border:1px solid #5a1b1b;background:#1a0e0e;color:#ffd7d7;border-radius:12px;display:none;z-index:900}
+[id]{scroll-margin-top:100px}
+.menuBtn{display:none}
+@media(max-width:900px){.container{grid-template-columns:1fr}.side{position:fixed;left:0;top:64px;bottom:0;width:85vw;max-width:320px;transform:translateX(-110%);transition:transform .25s ease;z-index:999}.side.open{transform:translateX(0)}.menuBtn{display:inline-block}}
+#toTop{position:fixed;right:16px;bottom:16px;z-index:1100;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;transform:translateY(8px)}
+#toTop.show{opacity:1;pointer-events:auto;transform:none} #toTop .btn{border-radius:999px;padding:10px 14px} #toTop small{opacity:.8}
+@media print{header,.side,.warn,.controls,#toTop{display:none !important} body{background:#fff;color:#000} .card{break-inside:avoid}}
 
 
-/* === Compact Icon Toolbar (single, top, scrollable) === */
+#cmdk[hidden]{display:none}
+#cmdk .cmdk-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:1198}
+#cmdk .cmdk-box{position:fixed;left:50%;top:12vh;transform:translateX(-50%);width:min(720px,92vw);background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.45);z-index:1199}
+#cmdk .cmdk-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
+#cmdk #cmdk-input{width:100%;padding:12px;border:0;border-bottom:1px solid var(--border);background:#0e1316;color:var(--ink);font-size:16px;border-radius:12px 12px 0 0}
+#cmdk #cmdk-list{list-style:none;margin:0;padding:6px 6px 10px 6px;max-height:46vh;overflow:auto}
+#cmdk #cmdk-list li{padding:10px 10px;border-radius:8px;cursor:pointer}
+#cmdk #cmdk-list li[aria-selected="true"]{background:rgba(46,230,166,.12);border:1px solid var(--mint)}
 
 
-.toolbar-scroll::-webkit-scrollbar{ display:none }
+/* tiny toast (non-intrusive) */
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:80vw;
+background:var(--card);border:1px solid var(--border);color:var(--ink);padding:10px 14px;
+border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:1300;opacity:0;transition:opacity .15s ease, transform .15s ease}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 
-body{  } /* prevent overlap */
-
-
-/* Top-right compact toolbar: ~25% width, horizontally scrollable */
-
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-
-body{  } /* ensure content doesn't sit underneath */
-
-/* Enlarged top-right pill, no separators */
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-
-/* Logo pill */
-.logo-pill{
-  position:fixed; top:10px; left:10px; z-index:3100;
-  font-weight:800; letter-spacing:.5px;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  color:#fff; background:#101010e6; border:1px solid #232323;
-  padding:8px 10px; border-radius:12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,.35);
+/* Header height and button overflow fix */
+header .wrap {
+  min-height: 70px; /* more breathing room */
+  flex-wrap: wrap;
 }
 
-/* Seamless inner toolbar (no separators) */
-
-
-.icon-btn:active svg{ transform: scale(.96) }
-.icon-btn:hover svg{ opacity:1 }
-
-/* Pill container (unchanged size, but no inner separators) */
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-/* Status dot (top-left): green=online, blue=offline/cached */
-
-#statusDot.offline{ background:#2b7bff } /* blue for offline (cached) */
-
-/* Single compact pill toolbar — top-right, scrollable, no duplicates */
-
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-
-
-.icon-btn:active svg{ transform: scale(.96) }
-
-
-@media (max-width: 768px) {
-  
-  
-  
+.controls {
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-/* ===== Stable, scrollable top-right pill with perfect alignment ===== */
-
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-
-.icon-btn svg{
-  width: 22px; height: 22px; display:block; opacity:.98;
-}
-
-/* Tiny labels only on iPhone/small screens, with fixed container height */
-.icon-label{
-  display: none;
-  font-size: 10px;
-  color: #ccc;
-  text-align: center;
-  line-height: 12px;
-  height: 12px;               /* reserve space so height stays stable */
-  margin: 2px 0 0 0;
-}
-
-@media (max-width: 768px){
-  
-  
-  .icon-btn svg{
-    margin: 0 0 2px 0;
-  }
-  .icon-label{
-    display: block;
-  }
-}
-
-/* Ensure page content doesn't hide under the fixed pill */
-body{ padding-top: 96px; }
-/* Reserve space for the fixed top-right toolbar so it doesn't cover the header/title */
-body{  }           /* desktop/tablet */
-@media (max-width: 768px){
-  body{  }         /* iPhone: toolbar is taller due to labels */
-}
-
-/* Smaller Gallery title and more spacing from top nav */
-.gallery-title, h1 {
-  font-size: 1.8rem; /* smaller than default */
-  margin-top: 0;
-  margin-bottom: 12px;
-}
-@media (max-width: 768px) {
-  .gallery-title, h1 {
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-  }
-}
-
-/* === Toolbar sizing (stable) === */
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-
-.icon-btn svg{
-  width: 22px; height: 22px; display:block; opacity:.98;
-}
-.icon-label{ display:none; }
-
-/* Mobile: taller bar with labels under icons */
-@media (max-width: 768px){
-  
-  
-  .icon-btn svg{ margin: 0 0 2px 0; }
-  .icon-label{
-    display:block;
-    font-size:10px; color:#ccc; line-height:12px;
-    height:12px; margin:2px 0 0 0; text-align:center;
-  }
-}
-
-/* Top placement */
-
-
-/* Adjust page padding so title/content don't collide */
-body{  }
-@media (max-width: 768px){
-  body{  }
-}
-
-/* Keep header as the positioning context */
-
-.brand{ display:flex; align-items:center; gap:10px; }
-.logo{ width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800 }
-
-/* Toolbar lives inside header, top-right, vertically centered */
-
-/* Pill */
-
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-
-.icon-btn svg{ width: 20px; height: 20px; display:block; opacity:.98 }
-
-/* Labels only on iPhone/small screens, with stable height */
-.icon-label{ display:none; font-size:10px; color:#ccc; text-align:center; line-height:12px; height:12px; margin-top:2px }
-@media (max-width: 768px){
-  
-  
-  .icon-btn svg{ margin-bottom: 2px }
-  .icon-label{ display:block }
-}
-
-/* No big body padding needed now that toolbar is inside header */
-body{ padding-top: 96px; }
-/* --- iOS Safari: prevent SVG disappearing near bottom --- */
-
-
-.icon-btn svg{
-  will-change: transform;
-  transform: translateZ(0);
-}
-
-/* Keep it pretty on desktop where backdrop-filter is stable */
-@media (min-width: 769px){
-  
-}
-
-/* Make sure header stays above everything even at bottom */
-
-
-/* Fixed header to avoid iOS rubber-banding disappearance */
-header.shell{
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 3500;
-  display:flex; align-items:center; justify-content:space-between;
-  min-height: 64px;
-  padding: 0 16px;
-  border-bottom:1px solid var(--line);
-  background:#0e0e0e;
-  -webkit-backface-visibility: hidden;  /* avoid flicker */
-  backface-visibility: hidden;
-}
-/* On iPhone make header a bit taller to fit the pill with labels */
-@media (max-width: 768px){
-  header.shell{ min-height: 76px; }
-}
-
-.top-toolbar{
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-}
-
-.toolbar-scroll{
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  width: 25vw; max-width: 420px; min-width: 220px;
-  height: 50px;
-  padding: 6px 8px;
-  background: #111111f0;   /* opaque-ish, no blur to avoid bugs */
-  border: 0; border-radius: 16px;
-  white-space: nowrap;
-  overflow-x: auto; overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  box-shadow: 0 10px 28px rgba(0,0,0,.38);
-  /* Snap scrolling */
-  scroll-snap-type: x mandatory;
-  scroll-padding: 8px;
-}
-.toolbar-scroll::-webkit-scrollbar{ display:none }
-
-.icon-btn{
+.controls .btn {
   flex: 0 0 auto;
-  display:flex; align-items:center; justify-content:center;
-  width: 38px; height: 38px;
-  background: transparent; border:0; color:#fff; border-radius:10px;
-  scroll-snap-align: center;
-}
-.icon-btn svg{ width:20px; height:20px; display:block; opacity:.98 }
-.icon-label{ display:none; font-size:10px; color:#ccc; text-align:center; line-height:12px; height:12px; margin-top:2px }
-
-@media (max-width: 768px){
-  .toolbar-scroll{ height: 62px; padding: 6px 8px; }
-  .icon-btn{ width: 44px; height: 50px; flex-direction: column; }
-  .icon-btn svg{ margin-bottom: 2px }
-  .icon-label{ display:block }
-}
-
-#statusDot{
-  position: fixed; top: 12px; left: 12px;
-  z-index: 3600;
-  width:12px; height:12px; border-radius:50%;
-  background:#27c93f; /* green online */
-  box-shadow: 0 0 0 2px #0b0b0b, 0 0 10px rgba(0,0,0,.35);
-}
-#statusDot.offline{ background:#2b7bff } /* blue offline */
-
-body{ padding-top: 96px; }
-@media (max-width: 768px){
-  body{ padding-top: 112px; }
+  white-space: nowrap;
 }
 
 
-/* Tag chips + active tag filter */
-.tagchips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px }
-.tagchip{ padding:4px 8px; border-radius:999px; border:1px solid #2a2a2a; font-size:12px; color:#ddd; background:#111; cursor:pointer; user-select:none }
-.tagchip:hover{ background:#151515 }
-.tagchip.active{ background:#1a1a1a; border-color:#3a3a3a; color:#fff }
+/* --- header overflow + height handling (non-intrusive) --- */
+header .wrap{
+  height:auto;           /* allow it to grow if controls wrap */
+  min-height:64px;       /* keep original baseline height */
+  flex-wrap:wrap;        /* let controls move to next line on narrow widths */
+  row-gap:8px;           /* tidy spacing when wrapped */
+}
+.controls{flex-wrap:wrap;gap:8px}
+.controls .btn{white-space:nowrap;flex:0 0 auto}
 
-.activeTagWrap{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
-.activeTagBadge{ padding:6px 10px; border-radius:999px; font-size:13px; background:#151515; border:1px solid #2a2a2a; color:#ddd }
-.activeTagClear{ padding:6px 10px; border-radius:10px; font-size:13px; background:#201818; border:1px solid #3a1e1e; color:#ffbdbd; cursor:pointer }
+
+
