@@ -271,3 +271,37 @@ header.shell{
 #viewer .v-prev, #viewer .v-next, #viewer .v-close, #viewer .v-fav{
   background:#101010e0; border:1px solid #2a2a2a; border-radius:12px;
 }
+
+
+/* === FINAL NAV SCROLL OVERRIDES === */
+header.shell{ overflow:visible !important; }
+.brand{ flex:0 0 auto !important; }
+.nav{
+  display:flex !important;
+  flex:1 1 auto !important;
+  max-width:100% !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  flex-wrap:nowrap !important;
+  white-space:nowrap !important;
+  gap:12px !important;
+  -webkit-overflow-scrolling:touch !important;
+  scroll-snap-type:x mandatory !important;
+}
+.nav::-webkit-scrollbar{ display:none; height:0; }
+.nav > *{ flex:0 0 auto !important; scroll-snap-align:center; }
+
+
+/* Zoom button style */
+#viewer .v-zoom{
+  position:absolute;
+  left:16px;
+  bottom:16px;
+  width:44px; height:44px;
+  background:#101010e0;
+  border:1px solid #2a2a2a;
+  color:#fff;
+  border-radius:12px;
+  display:grid; place-items:center;
+  cursor:pointer; font-size:18px;
+}

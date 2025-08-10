@@ -38,6 +38,7 @@
   const vClose = viewer?.querySelector('.v-close');
   const vCount = viewer?.querySelector('.v-count');
   const vFav = viewer?.querySelector('.v-fav');
+  const vZoom = viewer?.querySelector('.v-zoom');
 
   let items = [];
   let activeFavOnly = false;
@@ -54,7 +55,7 @@
 
   window.addEventListener('error', e => log('Error:', e.message||e.error));
 
-  // init deferred until prefs is defined
+  loadPrefs(); applyPrefs(); init();
 
   function loadLS(){
     try{
@@ -373,6 +374,18 @@
   vPrev && (vPrev.onclick = prev);
   vClose && (vClose.onclick = closeViewer);
   vFav && (vFav.onclick = () => { toggleFavCurrent(); });
+  // Zoom toggle (tap button to zoom in/out)
+  function toggleZoom(){
+    if (!vImg) return;
+    if (scale > 1){
+      scale = 1; panX = 0; panY = 0;
+    } else {
+      scale = 2.0; panX = 0; panY = 0;
+    }
+    applyTransform();
+  }
+  vZoom && (vZoom.onclick = () => { toggleZoom(); });
+
 
   function toggleFavCurrent(){
     if (viewIndex<0) return;
@@ -391,7 +404,18 @@
   });
 
   function resetZoom(){ scale = 1; panX = panY = 0; applyTransform(); }
-  function applyTransform(){ if (vImg) vImg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function applyTransform(){ clampPan(); if (vImg) vImg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function clampPan(){
+    if (!vImg) return;
+    const rect = vImg.getBoundingClientRect();
+    // Allow some leeway but prevent runaway panning when zoomed
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const maxX = Math.max(0, (rect.width - vw)/2 + 40);
+    const maxY = Math.max(0, (rect.height - vh)/2 + 40);
+    panX = Math.max(-maxX, Math.min(maxX, panX));
+    panY = Math.max(-maxY, Math.min(maxY, panY));
+  }
+
   function distance(t1, t2){ const dx=t2.clientX - t1.clientX; const dy=t2.clientY - t1.clientY; return Math.hypot(dx,dy); }
 
   viewer?.addEventListener('touchstart', onTouchStart, {passive:false});
@@ -402,7 +426,7 @@
     if (!viewer?.classList.contains('on')) return;
     if (e.touches.length === 1){
       const now = Date.now();
-      if (now - lastTapTime < 300){ e.preventDefault(); scale = (scale > 1) ? 1 : 2.0; panX = panY = 0; applyTransform(); }
+      if (now - lastTapTime < 300){ e.preventDefault(); scale = (scale > 1.1) ? 1 : 2.0; panX = panY = 0; applyTransform(); }
       lastTapTime = now;
       lastTouches = [e.touches[0]];
     } else if (e.touches.length === 2){
@@ -513,9 +537,6 @@
   window.__jgal = { render, applyPrefs, savePrefs, prefs };
 
   // hydrate now that DOM is ready
-  loadPrefs();
-  applyPrefs();
   hydrateSettingsUI();
-  init();
 
 })();
