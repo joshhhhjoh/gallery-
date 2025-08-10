@@ -323,6 +323,20 @@
     lastTouches = [];
   }
 
+  
+  // === Desktop double-click zoom + mouse drag pan ===
+  function toggleZoom(){
+    if (!els.viewer || !v.img) return;
+    scale = (scale > 1.1) ? 1 : 2.0;
+    panX = 0; panY = 0;
+    applyTransform();
+  }
+  els.viewer && els.viewer.addEventListener('dblclick', (e)=>{
+    if (!els.viewer.classList.contains('on')) return;
+    e.preventDefault();
+    toggleZoom();
+  }, { passive:false });
+
   // ----- Events
   els.upPhotos && (els.upPhotos.onchange = e => addFiles(e.target.files));
   els.upCam && (els.upCam.onchange = e => addFiles(e.target.files));
@@ -359,6 +373,23 @@
     const ls = loadLS();
     if (ls) items = ls;
     render();
+  })();
+
+  // Mouse pan handlers
+  (function(){
+    let dragging = false, lastX = 0, lastY = 0;
+    if (v.img){
+      v.img.addEventListener('mousedown', (e)=>{
+        if (!els.viewer.classList.contains('on') || scale === 1 || e.button !== 0) return;
+        dragging = true; lastX = e.clientX; lastY = e.clientY; e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if (!dragging || scale === 1) return;
+        panX += (e.clientX - lastX); panY += (e.clientY - lastY);
+        lastX = e.clientX; lastY = e.clientY; applyTransform();
+      });
+      window.addEventListener('mouseup', ()=>{ dragging = false; });
+    }
   })();
 
 })();
