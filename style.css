@@ -185,123 +185,22 @@ button.icon-btn, label.icon-btn{border:none !important;border-radius:0 !importan
 label.icon-btn.file-btn{ overflow:visible }
 
 
-/* === 1:1 Look Overrides (Screenshot match) === */
 
-/* Global */
-:root{
-  --bg:#0b0b0b;
-  --panel:#111111;
-  --ink:#eaeaea;
-  --line:#1f1f1f;
-}
-body{ background:var(--bg); color:var(--ink); }
-
-/* Sticky header, soft shadow */
-header.shell{
-  position: sticky; top: 0; z-index: 1000;
-  background:#0e0e0e;
-  box-shadow: 0 6px 20px rgba(0,0,0,.35);
-  border-bottom:1px solid var(--line);
-  min-height:64px;
-}
-
-/* Brand */
-.brand .logo{
-  width: 34px; height: 34px; border-radius: 10px;
-  border:1px solid var(--line);
-  display:grid; place-items:center; font-weight:800;
-}
-.brand h1{
-  margin:0; font-weight:800; letter-spacing:.2px;
-}
-
-/* Toolbar “pill” */
-.nav{
-  background:#0f0f0f;
-  border:1px solid #1d1d1d;
-  border-radius:16px;
-  padding:10px 12px;
-  gap:14px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 8px 28px rgba(0,0,0,.45);
-  flex:0 0 auto;
-}
-
-/* Icon buttons with label below */
-.icon-btn{
-  background:#141414;
-  border:1px solid #242424;
-  border-radius:12px;
-  width:auto; min-width:70px;
-  padding:10px 12px;
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-}
-.icon-btn:hover{ background:#191919; transform:translateY(-1px); }
-.icon-btn svg{ width:22px; height:22px }
-.icon-label{ display:block; font-size:12px; color:#d0d0d0; }
-
-/* Inputs + counters */
-.titleInput, .search{
-  background:#0e0e0e; color:#fff;
-  border:1px solid var(--line);
-  border-radius:12px; padding:12px 14px;
-}
-.badge{ border-radius:12px; border:1px solid #2a2a2a; }
-
-/* Card look */
-.card{
-  border-radius:16px; overflow:hidden;
-  border:1px solid var(--line);
-  background:#111111;
-}
-.media{ background:#0f0f0f; }
-.thumb{ border-radius:0; }
-
-/* Selection checkbox style (rounded square) */
-.sel{
-  top:10px; left:10px;
-  background:#0e0e0ee6;
-  border:1px solid #2a2a2a; border-radius:12px; padding:6px 6px;
-}
-.sel input{ appearance:auto; width:18px; height:18px; }
-
-/* Footer text weight */
-.foot{ color:#9a9a9a; }
-
-/* Viewer controls centered vertically, same rounded buttons */
-#viewer .v-prev, #viewer .v-next, #viewer .v-close, #viewer .v-fav{
-  background:#101010e0; border:1px solid #2a2a2a; border-radius:12px;
-}
-
-
-/* === FINAL NAV SCROLL OVERRIDES === */
-header.shell{ overflow:visible !important; }
-.brand{ flex:0 0 auto !important; }
-.nav{
-  display:flex !important;
-  flex:1 1 auto !important;
-  max-width:100% !important;
-  overflow-x:auto !important;
-  overflow-y:hidden !important;
-  flex-wrap:nowrap !important;
-  white-space:nowrap !important;
-  gap:12px !important;
-  -webkit-overflow-scrolling:touch !important;
-  scroll-snap-type:x mandatory !important;
-}
-.nav::-webkit-scrollbar{ display:none; height:0; }
-.nav > *{ flex:0 0 auto !important; scroll-snap-align:center; }
-
-
-/* Zoom button style */
-#viewer .v-zoom{
-  position:absolute;
-  left:16px;
-  bottom:16px;
-  width:44px; height:44px;
-  background:#101010e0;
-  border:1px solid #2a2a2a;
-  color:#fff;
-  border-radius:12px;
-  display:grid; place-items:center;
-  cursor:pointer; font-size:18px;
+/* === iPhone width: show ~3 icons and let it scroll === */
+@media (max-width: 480px){
+  header.shell{ overflow:visible !important; }
+  .brand{ flex:0 0 auto !important; }
+  .nav{
+    flex:0 0 auto !important;
+    width: 258px !important;              /* ~3 icons visible */
+    max-width: 258px !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    flex-wrap:nowrap !important;
+    white-space:nowrap !important;
+    -webkit-overflow-scrolling:touch !important;
+    scroll-snap-type:x mandatory !important;
+  }
+  .nav > *{ flex:0 0 auto !important; scroll-snap-align:center; }
+  .icon-btn{ min-width:78px !important; }  /* 3 x 78 + gaps ≈ 258 */
 }
