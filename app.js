@@ -52,7 +52,10 @@
   let lastTouches = [];
   let lastTapTime = 0;
 
-  window.addEventListener('error', e => log('Error:', e.message||e.error));
+  // swipe helpers
+  let swipeStartX = 0, swipeStartY = 0;
+  let navLock = false;
+window.addEventListener('error', e => log('Error:', e.message||e.error));
 
   loadPrefs(); applyPrefs(); init();
 
@@ -401,6 +404,8 @@
   function onTouchStart(e){
     if (!viewer?.classList.contains('on')) return;
     if (e.touches.length === 1){
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
       const now = Date.now();
       if (now - lastTapTime < 300){ e.preventDefault(); scale = (scale > 1) ? 1 : 2.0; panX = panY = 0; applyTransform(); }
       lastTapTime = now;
@@ -434,10 +439,15 @@
     if (!viewer?.classList.contains('on')) return;
     if (scale === 1 && e.changedTouches.length === 1){
       const t = e.changedTouches[0];
-      const last = lastTouches[0];
-      if (last){
-        const dx = t.clientX - last.clientX;
-        if (Math.abs(dx) > 40){ if (dx < 0) next(); else prev(); }
+      const dx = t.clientX - swipeStartX;
+      const dy = t.clientY - swipeStartY;
+      const isHorizontal = Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy);
+      if (isHorizontal && !navLock){
+        navLock = true;
+        stopSlideshow(); // prevent timer from double-advancing
+        if (dx < 0) next(); else prev();
+        e.preventDefault();
+        setTimeout(()=>{ navLock = false; }, 220);
       }
     }
     lastTouches = [];
