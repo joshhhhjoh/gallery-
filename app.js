@@ -331,7 +331,6 @@ function openViewerAt(idx){
     else if (e.key === 'Escape') closeViewer();
   });
 
-  let scale=1, startScale=1, panX=0, panY=0, lastTouches=[], lastTapTime=0;
   function resetZoom(){ scale = 1; panX = panY = 0; applyTransform(); }
   function applyTransform(){ vImg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
   function distance(t1, t2){ const dx=t2.clientX - t1.clientX; const dy=t2.clientY - t1.clientY; return Math.hypot(dx,dy); }
@@ -496,4 +495,3 @@ function renderFavToggle(){
   btn.onclick = () => { activeFavOnly = !activeFavOnly; render(); };
   host.appendChild(btn);
 }
-

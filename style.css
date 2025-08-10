@@ -11,8 +11,8 @@
       display:flex;flex:1 1 auto;
         
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    padding-top:6px;padding-bottom:8px;display:flex;align-items:flex-start;gap:12px;padding:8px 12px;overflow-x:auto;white-space:nowrap;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
-    .nav::-webkit-scrollbar{ display:none display:flex;align-items:flex-start;gap:12px;padding:8px 12px;overflow-x:auto;white-space:nowrap;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+    padding-top:6px;padding-bottom:8px;display:flex;align-items:flex-start;gap:12px;padding:8px 12px;white-space:nowrap;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+    .nav::-webkit-scrollbar{ display:none display:flex;align-items:flex-start;gap:12px;padding:8px 12px;white-space:nowrap;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
     .icon-btn, .btn{position:relative;background:#151515;color:#fff;cursor:pointer;touch-action:manipulationflex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
     .btn{padding:12px 14px;white-space:nowrap}
     .icon-btn{width:42px;display:grid;place-items:center;flex:0 0 autodisplay:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 12px;min-width:68px;height:auto;background:transparent;border:none;}
@@ -34,7 +34,7 @@
     .titleInput{width:100%;background:transparent;color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:600 18px/1.2 ui-sans-serif, system-ui}
     .filters{display:grid;grid-template-columns: minmax(220px,1fr) auto; gap:12px; align-items:center}
     .search{width:100%;background:#0e0e0e;border:1px solid var(--line);color:#fff;padding:12px 14px;border-radius:12px;min-width:0}
-    .tagFilters{display:flex;gap:8px;align-items:center;overflow-x:auto;white-space:nowrap;padding:6px 2px;-webkit-overflow-scrolling: touch; scrollbar-width: none}
+    .tagFilters{display:flex;gap:8px;align-items:center;white-space:nowrap;padding:6px 2px;-webkit-overflow-scrolling: touch; scrollbar-width: none}
     .tagFilters::-webkit-scrollbar{ display:none }
     .btn.sm{padding:8px 10px;border-radius:10px;font-size:14px}
     .muted{color:#bfbfbf}
@@ -176,7 +176,7 @@ button.icon-btn, label.icon-btn{border:none !important;border-radius:0 !importan
   align-items:flex-start;
   gap:12px;
   padding:8px 12px;
-  overflow-x:auto;
+  
   white-space:nowrap;
   scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;
@@ -194,7 +194,7 @@ label.icon-btn.file-btn{ overflow:visible }
     flex:0 0 auto !important;
     width: 258px !important;              /* ~3 icons visible */
     max-width: 258px !important;
-    overflow-x:auto !important;
+    !important;
     overflow-y:hidden !important;
     flex-wrap:nowrap !important;
     white-space:nowrap !important;
@@ -203,4 +203,21 @@ label.icon-btn.file-btn{ overflow:visible }
   }
   .nav > *{ flex:0 0 auto !important; scroll-snap-align:center; }
   .icon-btn{ min-width:78px !important; }  /* 3 x 78 + gaps ≈ 258 */
+}
+
+
+@media (max-width: 480px){
+  .nav{
+    flex:0 0 auto !important;
+    width: 258px !important;
+    max-width: 258px !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    flex-wrap:nowrap !important;
+    white-space:nowrap !important;
+    -webkit-overflow-scrolling:touch !important;
+    scroll-snap-type:x mandatory !important;
+  }
+  .nav > *{ flex:0 0 auto !important; scroll-snap-align:center; }
+  .icon-btn{ min-width:78px !important; }
 }
