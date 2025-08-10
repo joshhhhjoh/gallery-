@@ -1,49 +1,34 @@
-const CACHE = 'j-gallery-v36';
+/* Service Worker: offline shell for Josh's gallery */
+const CACHE = 'josh-gal-v1';
 const CORE = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
-  './offline.html',
-  './manifest.webmanifest'
+  './styles.css',
+  './script.js',
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => k === CACHE ? null : caches.delete(k)))).then(() => self.clients.claim())
+    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE ? caches.delete(k) : null)))
   );
+  self.clients.claim();
 });
 
+// Cache-first for same-origin; fall back to network
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-
-  // For navigation requests (HTML), serve cached index or offline page
-  if (req.mode === 'navigate') {
+  if (url.origin === location.origin) {
     e.respondWith(
-      caches.match('./index.html').then(res => {
-        return res || fetch(req).catch(() => caches.match('./offline.html'));
-      })
-    );
-    return;
-  }
-
-  // For same-origin GET requests, use cache-first
-  if (url.origin === location.origin && req.method === 'GET') {
-    e.respondWith(
-      caches.match(req).then(cached => cached || fetch(req).then(r => {
-        const copy = r.clone();
+      caches.match(req).then(hit => hit || fetch(req).then(res => {
+        const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy));
-        return r;
-      }).catch(() => caches.match('./offline.html')))
+        return res;
+      }).catch(() => caches.match('./index.html')))
     );
-    return;
   }
-
-  // Default: network
-  e.respondWith(fetch(req));
 });

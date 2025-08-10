@@ -321,3 +321,110 @@
     return new Blob([arr], { type: mime });
   }
 })();
+
+// --- Compact Pinch/Double‑tap Zoom for Viewer ---
+(() => {
+  const viewer = document.getElementById('viewer');
+  const img = viewer.querySelector('.v-img');
+  const prevBtn = viewer.querySelector('.v-prev');
+  const nextBtn = viewer.querySelector('.v-next');
+
+  let scale = 1, startScale = 1;
+  let panX = 0, panY = 0;
+  let lastTouches = [];
+  let lastTap = 0;
+
+  function resetZoom(){ scale=1; panX=0; panY=0; applyTransform(); }
+  function applyTransform(){ img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+
+  function distance(a,b){ const dx=b.clientX-a.clientX, dy=b.clientY-a.clientY; return Math.hypot(dx,dy); }
+
+  img.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1){
+      const now = Date.now();
+      if (now - lastTap < 300){ // double-tap
+        e.preventDefault();
+        scale = (scale > 1) ? 1 : 2.0;
+        panX = panY = 0;
+        applyTransform();
+      }
+      lastTap = now;
+      lastTouches = [e.touches[0]];
+    } else if (e.touches.length === 2){
+      e.preventDefault();
+      lastTouches = [e.touches[0], e.touches[1]];
+      startScale = scale;
+    }
+  }, {passive:false});
+
+  img.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2){
+      e.preventDefault();
+      const [t1, t2] = [e.touches[0], e.touches[1]];
+      const [p1, p2] = lastTouches;
+      const ds = distance(t1,t2) / distance(p1,p2);
+      scale = Math.min(5, Math.max(1, startScale * ds));
+      applyTransform();
+    } else if (e.touches.length === 1 && scale > 1){
+      e.preventDefault();
+      const t = e.touches[0];
+      const p = lastTouches[0] || t;
+      panX += (t.clientX - p.clientX);
+      panY += (t.clientY - p.clientY);
+      lastTouches = [t];
+      applyTransform();
+    }
+  }, {passive:false});
+
+  img.addEventListener('touchend', (e) => {
+    lastTouches = [];
+  }, {passive:true});
+
+  // Navigate only when not zoomed
+  let swipeX = 0, swiping = false;
+  viewer.addEventListener('touchstart', (e) => {
+    if (scale > 1) return;
+    if (!viewer.classList.contains('on')) return;
+    swiping = true;
+    swipeX = e.touches[0].clientX;
+  }, {passive:true});
+  viewer.addEventListener('touchend', (e) => {
+    if (scale > 1 || !swiping) return;
+    const dx = e.changedTouches[0].clientX - swipeX;
+    if (Math.abs(dx) > 40){
+      if (dx < 0) nextBtn.click();
+      else prevBtn.click();
+    }
+    swiping = false;
+  }, {passive:true});
+
+  // Reset zoom when closing viewer (hook into existing close button)
+  const closeBtn = viewer.querySelector('.v-close');
+  if (closeBtn){
+    const origClose = closeBtn.onclick;
+    closeBtn.onclick = (ev) => { resetZoom(); if (origClose) origClose(ev); };
+  }
+  // Also reset when image changes via buttons
+  const wrapNext = nextBtn.onclick;
+  nextBtn.onclick = (ev) => { resetZoom(); if (wrapNext) wrapNext(ev); };
+  const wrapPrev = prevBtn.onclick;
+  prevBtn.onclick = (ev) => { resetZoom(); if (wrapPrev) wrapPrev(ev); };
+})();
+
+
+
+// ---- Online/Offline status dot ----
+(function(){
+  const dot = document.getElementById('statusDot');
+  function update(){
+    if (!dot) return;
+    const online = navigator.onLine;
+    dot.classList.toggle('offline', !online);
+    dot.title = online ? 'Online' : 'Offline (cached)';
+  }
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  document.addEventListener('visibilitychange', update);
+  setTimeout(update, 0);
+})();
+
