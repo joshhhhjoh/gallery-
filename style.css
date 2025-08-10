@@ -1,0 +1,119 @@
+/* Diet, neat, iPhone-first */
+:root{ --bg:#0b0b0b; --panel:#111; --ink:#fff; --ink-dim:#bfbfbf; --line:#1f1f1f; --card-min:240px }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;padding-bottom:env(safe-area-inset-bottom)}
+
+.shell{max-width:1120px;margin:0 auto;padding:0 16px}
+header.shell{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:64px;border-bottom:1px solid var(--line);background:#0e0e0e;position:sticky;top:0;z-index:10}
+.brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.logo{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800}
+
+.nav{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:8px 10px; background:#0f0f0f; border:1px solid #1d1d1d; border-radius:14px;
+  -webkit-overflow-scrolling:touch; overflow-y:hidden; white-space:nowrap; scroll-snap-type:x mandatory;
+  flex-wrap:nowrap; flex:0 0 auto;
+}
+.icon-btn,.btn{border:none;background:transparent;color:#fff;cursor:pointer}
+.icon-btn{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:72px;padding:10px 12px;border-radius:12px;border:1px solid #242424;background:#141414}
+.icon-btn:hover{background:#191919;transform:translateY(-1px);transition:.18s}
+.icon-label{display:block;font-size:11px;color:#d0d0d0;white-space:normal;max-width:72px;text-align:center}
+.file-btn{position:relative;overflow:hidden}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;appearance:none}
+
+.badge{font-size:12px;border:1px solid #2a2a2a;padding:6px 8px;border-radius:10px;color:#bfbfbf;margin-left:6px}
+.panel{padding:14px 16px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:center}
+.titleInput{width:100%;background:transparent;color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:600 18px/1.2 ui-sans-serif, system-ui}
+.filters{display:grid;grid-template-columns:minmax(220px,1fr) auto; gap:12px; align-items:center}
+.filter-actions{display:flex;gap:8px;justify-content:flex-end}
+.search{width:100%;background:#0e0e0e;border:1px solid var(--line);color:#fff;padding:12px 14px;border-radius:12px;min-width:0}
+.tagFilters{display:flex;gap:8px;align-items:center;overflow-x:auto;white-space:nowrap;padding:6px 2px;-webkit-overflow-scrolling:touch}
+.tagFilters::-webkit-scrollbar{display:none}
+.btn.sm{padding:8px 10px;border-radius:10px;font-size:14px}
+.muted{color:#bfbfbf}
+
+.grid{list-style:none;margin:0;padding:18px 0 24px;display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(var(--card-min),1fr))}
+.card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#111;display:flex;flex-direction:column;position:relative}
+.media{background:#0f0f0f;position:relative}
+.thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.fav{position:absolute;right:6px;bottom:6px;border:1px solid #2a2a2a;background:#101010c0;color:#ffdf5f;border-radius:10px;padding:6px 8px;font-size:16px;cursor:pointer}
+
+.sel{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:6px;background:#0e0e0ee6;border:1px solid #2a2a2a;border-radius:10px;padding:4px 6px}
+.sel input{width:16px;height:16px}
+.sel span{font-size:12px;color:#bbb}
+
+.meta{padding:12px;display:grid;gap:10px}
+.title,.desc,.tags{width:100%;background:#0e0e0e;color:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:12px;font-size:16px}
+.desc{resize:vertical;min-height:44px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+.tagchips{display:flex;gap:6px;flex-wrap:wrap}
+.tagchip{padding:4px 8px;border-radius:999px;border:1px solid #2a2a2a;font-size:12px;cursor:pointer;user-select:none}
+
+.foot{padding:14px 16px 24px;border-top:1px solid var(--line);color:#8d8d8d}
+
+/* Viewer */
+#viewer{ position:fixed; inset:0; background:rgba(0,0,0,.95); display:none; align-items:center; justify-content:center; z-index:9999; overflow:hidden; }
+#viewer.on{ display:flex }
+#viewer .v-img{ max-width:none; max-height:none; transform-origin:center center; transition:opacity .18s ease; opacity:0 }
+#viewer.show .v-img{ opacity:1 }
+#viewer .v-prev, #viewer .v-next, #viewer .v-close, #viewer .v-fav{
+  position:absolute; background:#101010e0; border:1px solid #2a2a2a; color:#fff;
+  width:44px; height:44px; border-radius:12px; display:grid; place-items:center; cursor:pointer; font-size:24px;
+}
+#viewer .v-prev{ left:16px; top:50%; transform:translateY(-50%) }
+#viewer .v-next{ right:16px; top:50%; transform:translateY(-50%) }
+#viewer .v-close{ top:16px; right:16px; font-size:18px }
+#viewer .v-fav{ top:16px; left:16px; color:#ffdf5f }
+#viewer .v-count{ position:absolute; bottom:16px; left:50%; transform:translateX(-50%); font-size:12px; color:#ddd; background:#101010e0; border:1px solid #2a2a2a; padding:6px 10px; border-radius:10px }
+
+/* iPhone: nav shows ~3 icons, scrolls horizontally; prevent page horizontal scroll */
+@media (max-width: 480px){
+  .nav{ max-width:260px; overflow-x:auto; }
+  body{ overflow-x:hidden; }
+}
+.hidden{position:fixed;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px}
+
+
+.icon-btn{
+  width:48px !important;
+  height:48px !important;
+  font-size:16px !important;
+  margin:0 5px !important;
+}
+.icon-btn img, .icon-btn svg{
+  max-width:28px !important;
+  max-height:28px !important;
+}
+
+
+/* === Safe icon + nav fixes (CSS-only) === */
+body { overflow-x: hidden; }
+
+.nav {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.nav::-webkit-scrollbar { display: none; }
+
+.icon-btn {
+  min-width: 64px !important;
+  padding: 8px 10px !important;
+  border-radius: 12px !important;
+}
+.icon-btn svg, .icon-btn img {
+  width: 20px !important;
+  height: 20px !important;
+  display: block;
+}
+
+@media (max-width: 480px){
+  .nav { max-width: 260px; } /* ~3 icons, then scroll */
+}
