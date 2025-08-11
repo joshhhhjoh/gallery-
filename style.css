@@ -61,7 +61,18 @@ font-size:15px;
 /* Viewer */
 #viewer{ position:fixed; inset:0; background:rgba(0,0,0,.95); display:none; align-items:center; justify-content:center; z-index:9999; overflow:hidden; }
 #viewer.on{ display:flex }
-#viewer .v-img{ max-width:none; max-height:none; transform-origin:center center; transition:opacity .18s ease; opacity:0 }
+#viewer .v-img{
+  max-width: 70vw !important;
+  max-height: 70vh !important;
+  object-fit: contain;
+  width: auto;
+  height: auto;
+  margin: auto;
+  display: block;
+  transform-origin: center center;
+  transition: opacity .18s ease;
+  opacity: 0;
+}
 #viewer.show .v-img{ opacity:1 }
 #viewer .v-prev, #viewer .v-next, #viewer .v-close, #viewer .v-fav{
   position:absolute; background:#101010e0; border:1px solid #2a2a2a; color:#fff;
@@ -121,3 +132,11 @@ body { overflow-x: hidden; }
 @media (max-width: 480px){
   .nav { max-width: 260px; } /* ~3 icons, then scroll */
 }
+
+
+/* Keep viewer controls above the image and spaced */
+#viewer .v-prev, #viewer .v-next, #viewer .v-close, #viewer .v-fav{
+  z-index: 10000 !important;
+}
+#viewer .v-prev{ left: 5% !important; }
+#viewer .v-next{ right: 5% !important; }
