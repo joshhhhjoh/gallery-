@@ -24,27 +24,6 @@
     tagFilters: document.getElementById('tagFilters'),
     viewer: document.getElementById('viewer')
   };
-
-  // === Robust file pickers (iOS/scrollable nav safe) ===
-  const lblImport = document.querySelector('label[for="importJson"]');
-  const lblAppend = document.querySelector('label[for="appendJson"]');
-  if (lblImport && els.importJson){
-    lblImport.addEventListener('click', (e)=>{ e.preventDefault(); els.importJson.click(); });
-  }
-  if (lblAppend && els.appendJson){
-    lblAppend.addEventListener('click', (e)=>{ e.preventDefault(); els.appendJson.click(); });
-  }
-  if (els.upPhotos && els.upPhotos.parentElement){
-    els.upPhotos.parentElement.addEventListener('click', (e)=>{
-      if (e.target !== els.upPhotos){ e.preventDefault(); els.upPhotos.click(); }
-    });
-  }
-  if (els.upCam && els.upCam.parentElement){
-    els.upCam.parentElement.addEventListener('click', (e)=>{
-      if (e.target !== els.upCam){ e.preventDefault(); els.upCam.click(); }
-    });
-  }
-
   const v = {
     img: els.viewer?.querySelector('.v-img'),
     prev: els.viewer?.querySelector('.v-prev'),
@@ -344,20 +323,6 @@
     lastTouches = [];
   }
 
-  
-  // === Desktop double-click zoom + mouse drag pan ===
-  function toggleZoom(){
-    if (!els.viewer || !v.img) return;
-    scale = (scale > 1.1) ? 1 : 2.0;
-    panX = 0; panY = 0;
-    applyTransform();
-  }
-  els.viewer && els.viewer.addEventListener('dblclick', (e)=>{
-    if (!els.viewer.classList.contains('on')) return;
-    e.preventDefault();
-    toggleZoom();
-  }, { passive:false });
-
   // ----- Events
   els.upPhotos && (els.upPhotos.onchange = e => addFiles(e.target.files));
   els.upCam && (els.upCam.onchange = e => addFiles(e.target.files));
@@ -396,42 +361,4 @@
     render();
   })();
 
-  // Mouse pan handlers
-  (function(){
-    let dragging = false, lastX = 0, lastY = 0;
-    if (v.img){
-      v.img.addEventListener('mousedown', (e)=>{
-        if (!els.viewer.classList.contains('on') || scale === 1 || e.button !== 0) return;
-        dragging = true; lastX = e.clientX; lastY = e.clientY; e.preventDefault();
-      });
-      window.addEventListener('mousemove', (e)=>{
-        if (!dragging || scale === 1) return;
-        panX += (e.clientX - lastX); panY += (e.clientY - lastY);
-        lastX = e.clientX; lastY = e.clientY; applyTransform();
-      });
-      window.addEventListener('mouseup', ()=>{ dragging = false; });
-    }
-  })();
-
 })();
-  // === Robust file pickers (tap-safe) ===
-  (()=>{
-    const clickIt = (lab, inp)=>{
-      if (!lab || !inp) return;
-      lab.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); inp.click(); });
-      lab.addEventListener('touchend', (e)=>{ e.preventDefault(); e.stopPropagation(); inp.click(); });
-    };
-    clickIt(document.querySelector('label[for="importJson"]'), document.getElementById('importJson'));
-    clickIt(document.querySelector('label[for="appendJson"]'), document.getElementById('appendJson'));
-
-    const pLab = document.querySelector('#uploadPhotos')?.parentElement;
-    if (pLab){
-      pLab.addEventListener('click', (e)=>{ if (e.target.id!=='uploadPhotos'){ e.preventDefault(); document.getElementById('uploadPhotos').click(); } });
-      pLab.addEventListener('touchend', (e)=>{ if (e.target.id!=='uploadPhotos'){ e.preventDefault(); document.getElementById('uploadPhotos').click(); } });
-    }
-    const cLab = document.querySelector('#uploadCamera')?.parentElement;
-    if (cLab){
-      cLab.addEventListener('click', (e)=>{ if (e.target.id!=='uploadCamera'){ e.preventDefault(); document.getElementById('uploadCamera').click(); } });
-      cLab.addEventListener('touchend', (e)=>{ if (e.target.id!=='uploadCamera'){ e.preventDefault(); document.getElementById('uploadCamera').click(); } });
-    }
-  })();
