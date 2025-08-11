@@ -121,18 +121,3 @@ body { overflow-x: hidden; }
 @media (max-width: 480px){
   .nav { max-width: 260px; } /* ~3 icons, then scroll */
 }
-
-
-/* === Josh: viewer opens at ~65–70% so arrows are visible === */
-#viewer {
-  padding: 56px 32px 88px; /* extra side padding so arrows never overlap image */
-}
-#viewer .v-img{
-  max-width: min(70vw, 1000px);  /* ~70% of viewport width */
-  max-height: 70vh;              /* ~70% of viewport height */
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
-}

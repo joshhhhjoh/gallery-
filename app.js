@@ -226,9 +226,18 @@
       if (!Array.isArray(obj.items)) throw new Error('Invalid JSON');
       if (!append){ items = []; selected.clear(); if (els.sessionName) els.sessionName.value = obj.session || els.sessionName?.value; if (els.galleryTitle) els.galleryTitle.value = obj.title || els.galleryTitle?.value; }
       let order = items.reduce((m, it) => Math.max(m, it.order||0), 0);
-      for (const it of obj.items){
-        items.push({ id: it.id || uid(), order: ++order, title: it.title||'', desc: it.desc||'', tags: Array.isArray(it.tags)?it.tags:[], fav: !!it.fav, full: it.src || '', dataURL: it.src || '' });
+      
+for (const it of obj.items){
+        const id = it.id || uid();
+        const title = it.title || '';
+        const desc = it.desc || '';
+        const tags = Array.isArray(it.tags) ? it.tags : [];
+        const fav = !!it.fav;
+        const full = it.full || it.dataURL || it.thumb || it.src || '';
+        const dataURL = it.dataURL || it.thumb || it.full || it.src || '';
+        items.push({ id, order: ++order, title, desc, tags, fav, full, dataURL });
       }
+
       render(); saveLS(); e.target.value='';
     }catch(err){ alert('Import failed: ' + (err.message||err)); }
   }
